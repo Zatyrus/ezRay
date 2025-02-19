@@ -47,7 +47,7 @@ class MultiCoreExecutionTool:
         """
         ## Default Verbosity
         self.ListenerSleeptime = 0.1
-        self.LaunchDashboard = False
+        self.AutoLaunchDashboard = False
         self.silent = False
         self.DEBUG = False
         
@@ -449,6 +449,13 @@ class MultiCoreExecutionTool:
             NoReturn: No Return.
         """
         self.__reboot__(**kwargs)
+    def launch_dashboard(self)->bool:
+        """Launch ray dashboard in default browser.
+
+        Returns:
+            bool: Status of the operation.
+        """
+        return self.__launch_dashboard__()
 
 #%% Runtime Data Control
     def update_data(self, RuntimeData:Dict[Any,Dict[Any,Any]])->NoReturn:
@@ -524,13 +531,8 @@ class MultiCoreExecutionTool:
         self.DashboardURL = f"http://{cluster_context.dashboard_url}/"
 
         # dashboard
-        if self.LaunchDashboard:
-            try:
-                webbrowser.get('windows-default').open(self.DashboardURL,
-                                                       autoraise = True,
-                                                       new = 2)
-            except Exception as e:
-                print(f'Error: {e}')
+        if self.AutoLaunchDashboard:
+            self.__launch_dashboard__()
         
         if self.DEBUG:
             print('Ray setup complete...')
@@ -576,6 +578,28 @@ class MultiCoreExecutionTool:
             self.__initialize_ray_cluster__(**InitInstructions)
         except Exception as e:
             print(f'Error: {e}')
+            
+    def __launch_dashboard__(self)->bool:
+        """Launch ray dashboard in default browser.
+
+        Returns:
+            bool: Status of the operation.
+        """
+        if self.DEBUG:
+            print('Preparing to launch ray dashboard...')
+        
+        if not self.is_initalized():
+            print('Ray is not initialized. Use "initialize()" to initialize Ray.')
+            return False
+    
+        try:
+            webbrowser.get('windows-default').open(self.DashboardURL,
+                                                    autoraise = True,
+                                                    new = 2)
+            return True
+        except Exception as e:
+            print(f'Error: {e}')
+            return False
 
 #%% Runtime Data Handling
     def __setup_schedule__(self)->List[Any]:

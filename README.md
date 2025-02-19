@@ -17,6 +17,9 @@ instance_metadata:dict = {
 # setup ezRay
 MultiCore = MultiCoreExecutionTool(instance_metadata = instance_metadata)
 
+# launch ray dashboard (optional)
+MultiCore.launch_dashboard()
+
 # define a task
 def do_something(foo:int, bar:int) -> int:
     return foo + bar
