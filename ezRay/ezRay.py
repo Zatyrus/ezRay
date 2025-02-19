@@ -571,16 +571,15 @@ class MultiCoreExecutionTool:
         self.RuntimeData = None
         self.__initialize_metadata__()
          
-    def __reboot__(self, **kwargs)->NoReturn:
+    def __reboot__(self)->NoReturn:
         """Reboots the MultiCoreExecutionTool object. Can be provided with new instance parameters. See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
             NoReturn: _description_
         """
-        InitInstructions = self.RuntimeMetadata['instance_metadata'] | kwargs
         try:
             self.__shutdown__()
-            self.__initialize_ray_cluster__(**InitInstructions)
+            self.__initialize_ray_cluster__()
             self.__offload_data__()
         except Exception as e:
             print(f'Error: {e}')
