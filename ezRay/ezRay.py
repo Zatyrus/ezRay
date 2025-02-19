@@ -27,12 +27,14 @@ except Exception as _:
 #%% Multi Core Execution Main
 class MultiCoreExecutionTool:
     RuntimeData:Dict[Any,Dict[Any,Any]]
-    RuntimeResults:Dict[Any,Dict[str,Any]]
     
-    runimte_context:ray.runtime_context.RuntimeContext
+    RuntimeResults:Dict[Any,Dict[str,Any]]
+    RuntimeContext:ray.runtime_context.RuntimeContext
     RuntimeMetadata:Dict[str,Union[str, bool, int, float]]
     DashboardURL:str
     
+    ListenerSleeptime:float
+    AutoLaunchDashboard:bool
     silent:bool
     DEBUG:bool
 
@@ -419,15 +421,12 @@ class MultiCoreExecutionTool:
 
         Returns:
             NoReturn: No Return.
-        """
+        """        
         try:
-            InitInstructions = self.RuntimeMetadata['instance_metadata']
+            assert self.__initialize_ray_cluster__()
         except Exception as e:
             print(f'Error: {e}')
             return None
-        
-        self.__initialize_ray_cluster__(**InitInstructions)
-        
     def shutdown(self)->NoReturn:
         """Shutdown the Ray cluster.
 
@@ -435,20 +434,20 @@ class MultiCoreExecutionTool:
             NoReturn: No Return.
         """
         self.__shutdown__()
-    def reset(self, **kwargs)->NoReturn:
+    def reset(self)->NoReturn:
         """Resets RuntimeData and RuntimeData reference. Restores RuntimeMetadata defaults.
 
         Returns:
             NoReturn: No Return.
         """
-        self.__reset__(**kwargs)
-    def reboot(self, **kwargs)->NoReturn:
+        self.__reset__()
+    def reboot(self)->NoReturn:
         """Reboot the MultiCoreExecutionTool object. Can be provided with new instance parameters. See instance attributes for more information.
 
         Returns:
             NoReturn: No Return.
         """
-        self.__reboot__(**kwargs)
+        self.__reboot__()
     def launch_dashboard(self)->bool:
         """Launch ray dashboard in default browser.
 
@@ -512,13 +511,17 @@ class MultiCoreExecutionTool:
         self.RuntimeData = RuntimeData if RuntimeData is not None else None
         self.RuntimeData_ref = self.__offload_data__() if RuntimeData is not None else None
         
-    def __initialize_ray_cluster__(self)->NoReturn:
+    def __initialize_ray_cluster__(self)->bool:
         """Initialize the Ray cluster using the parameters found in sel.RuntimeMetadata['instance_metadata']".
            See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
            
         Returns:
             NoReturn: No Return
         """
+    
+        if self.is_initalized():
+            print('Ray is already initialized. Use "reboot()" to reboot the object.')
+            return False
     
         if self.DEBUG:
             print('Setting up Ray...')
@@ -540,6 +543,8 @@ class MultiCoreExecutionTool:
         
         # set the runtime context
         self.runimte_context = cluster_context
+        
+        return True
     
     def __shutdown__(self)->bool:
         """Shutdown the Ray cluster.
@@ -576,6 +581,7 @@ class MultiCoreExecutionTool:
         try:
             self.__shutdown__()
             self.__initialize_ray_cluster__(**InitInstructions)
+            self.__offload_data__()
         except Exception as e:
             print(f'Error: {e}')
             
