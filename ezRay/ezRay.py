@@ -479,7 +479,7 @@ class MultiCoreExecutionTool:
                                                      'ignore_reinit_error': True},
                                  'task_metadata': {'num_cpus': 1,
                                                    'num_gpus': 0,
-                                                   'num_returns': 'dynamic'},
+                                                   'num_returns': None},
                                  }
         # update metadata with given values
         self.RuntimeMetadata.update(kwargs)

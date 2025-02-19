@@ -15,7 +15,7 @@ instance_metadata:dict = {
     }
 
 # setup ezRay
-MultiCore = MultiCoreExecutionTool(*instance_metadata = instance_metadata)
+MultiCore = MultiCoreExecutionTool(instance_metadata = instance_metadata)
 
 # define a task
 def do_something(foo:int, bar:int) -> int:
@@ -23,9 +23,9 @@ def do_something(foo:int, bar:int) -> int:
 
 # prepare your data in a dictionary. They keys work as identifiers, while the values should be dictionaries matching the function signature.
 data = {
-    1:{'foo' = 0, 'bar' = 1},
-    2:{'foo' = 1, 'bar' = 2},
-    3:{'foo' = 2, 'bar' = 3}
+    1:{'foo' : 0, 'bar' : 1},
+    2:{'foo' : 1, 'bar' : 2},
+    3:{'foo' : 2, 'bar' : 3}
     }
 
 # pass the data to ezRay
@@ -40,7 +40,7 @@ results = MultiCore.get_results()
 
 ## A ray.remote object can be used interchangeably with a function
 ```python
-@ray.remote
+@ray.remote(num_cpus=1, num_gpus=0, num_returns=1)
 def do_something_remtoe(foo:int, bar:int) -> int:
     return foo + bar
 
