@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ezRay"
-version = "1.0.5"
+version = "1.1.0"
 description = "A simple implementation of the ray framework for method agnostic task paralellization."
 authors = ["Bela Vogler <bela.vogler@uni-jena.de>"]
 license = "GNU GPLv3"
