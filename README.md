@@ -60,3 +60,6 @@ results_second_task = MultiCore.get_results()
 # get the archived results
 archive = MultiCore.get_archive()
 ```
+## Documentation
+Pending, sry. No time.
+However, check out the sandbox in the examples folder or the docstrings in the code. 
