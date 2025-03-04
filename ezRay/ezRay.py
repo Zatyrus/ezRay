@@ -19,33 +19,36 @@ from IPython import get_ipython
 
 try:
     ipy_str = str(type(get_ipython()))
-    if 'zmqshell' in ipy_str:
+    if "zmqshell" in ipy_str:
         from tqdm.notebook import tqdm
     else:
         from tqdm import tqdm
 except Exception as _:
     from tqdm import tqdm
 
-#%% Multi Core Execution Main
-class MultiCoreExecutionTool:
-    RuntimeData:Dict[Any,Dict[Any,Any]]
-    
-    RuntimeResults:Dict[Any,Dict[str,Any]]
-    RuntimeContext:ray.runtime_context.RuntimeContext
-    RuntimeMetadata:Dict[str,Union[str, bool, int, float]]
-    RuntimeArchive:Dict[str,Dict[Any,Dict[str,Any]]]
-    DashboardURL:str
-    
-    ListenerSleeptime:float
-    AutoLaunchDashboard:bool
-    silent:bool
-    DEBUG:bool
-    
-    SingleShot:bool
-    AutoContinue:bool
-    AutoArchive:bool
 
-    def __init__(self, RuntimeData:Dict[Any,Dict[Any,Any]] = None, /, **kwargs)->'MultiCoreExecutionTool':
+# %% Multi Core Execution Main
+class MultiCoreExecutionTool:
+    RuntimeData: Dict[Any, Dict[Any, Any]]
+
+    RuntimeResults: Dict[Any, Dict[str, Any]]
+    RuntimeContext: ray.runtime_context.RuntimeContext
+    RuntimeMetadata: Dict[str, Union[str, bool, int, float]]
+    RuntimeArchive: Dict[str, Dict[Any, Dict[str, Any]]]
+    DashboardURL: str
+
+    ListenerSleeptime: float
+    AutoLaunchDashboard: bool
+    silent: bool
+    DEBUG: bool
+
+    SingleShot: bool
+    AutoContinue: bool
+    AutoArchive: bool
+
+    def __init__(
+        self, RuntimeData: Dict[Any, Dict[Any, Any]] = None, /, **kwargs
+    ) -> "MultiCoreExecutionTool":
         """Constructor for the MultiCoreExecutionTool class.
 
         Args:
@@ -59,14 +62,14 @@ class MultiCoreExecutionTool:
         self.AutoLaunchDashboard = False
         self.silent = False
         self.DEBUG = False
-        
+
         ## Initialize attributes
         self.DashboardURL = None
         self.RuntimeContext = None
         self.RuntimeMetadata = None
         self.RuntimeResults = None
         self.RuntimeArchive = None
-        
+
         ## Set Behavior
         self.SingleShot = False
         self.AutoContinue = False
@@ -78,18 +81,20 @@ class MultiCoreExecutionTool:
                 setattr(self, key, value)
 
         ## set the debug flag
-        if 'DEBUG' in kwargs.keys():
-            self.DEBUG = kwargs['DEBUG']
+        if "DEBUG" in kwargs.keys():
+            self.DEBUG = kwargs["DEBUG"]
             self.silent = False
-            
-        if 'SingleShot' in kwargs.keys():
-            self.SingleShot = kwargs['SingleShot']
+
+        if "SingleShot" in kwargs.keys():
+            self.SingleShot = kwargs["SingleShot"]
             self.AutoArchive = False
             self.AutoContinue = True
 
         self.__post_init__(RuntimeData, **kwargs)
 
-    def __post_init__(self, RuntimeData:Dict[Any,Dict[Any,Any]], /, **kwargs)->NoReturn:
+    def __post_init__(
+        self, RuntimeData: Dict[Any, Dict[Any, Any]], /, **kwargs
+    ) -> NoReturn:
         """Post initialization method for the MultiCoreExecutionTool class. Handles routine initialization tasks.
 
         Args:
@@ -102,18 +107,18 @@ class MultiCoreExecutionTool:
         self.__initialize_ray_cluster__()
         self.__offload_on_init__(RuntimeData)
 
-#%% Class methods
+    # %% Class methods
     @classmethod
-    def from_dict(cls, data:Dict[str,Any])->'MultiCoreExecutionTool':
+    def from_dict(cls, data: Dict[str, Any]) -> "MultiCoreExecutionTool":
         """Convenience method to create a MultiCoreExecutionTool object from a dictionary.
 
         Returns:
             MultiCoreExecutionTool: MultiCoreExecutionTool object.
         """
         return cls(**data)
-    
+
     @classmethod
-    def from_json(cls, path:str)->'MultiCoreExecutionTool':
+    def from_json(cls, path: str) -> "MultiCoreExecutionTool":
         """Convenience method to create a MultiCoreExecutionTool object from a JSON file.
 
         Args:
@@ -122,20 +127,22 @@ class MultiCoreExecutionTool:
         Returns:
             MultiCoreExecutionTool: MultiCoreExecutionTool object.
         """
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             data = json.load(file)
         return cls(**data)
-    
-#%% DEBUG & DEMO
+
+    # %% DEBUG & DEMO
     @ray.remote(num_cpus=1, num_returns=1)
-    def test_function(kwargs)->Dict[Any,Any]:
+    def test_function(kwargs) -> Dict[Any, Any]:
         """Test function for the framework that merely forwards the input."""
-        return {k:v for k,v in kwargs.items()}
-    
-#%% Ray Wrapper
-    def __setup_wrapper__(self)->Callable:
-        @ray.remote(**self.RuntimeMetadata['task_metadata'])
-        def __method_wrapper__(method:Callable, input:Dict[Any,Any])->ray.remote_function.RemoteFunction:
+        return {k: v for k, v in kwargs.items()}
+
+    # %% Ray Wrapper
+    def __setup_wrapper__(self) -> Callable:
+        @ray.remote(**self.RuntimeMetadata["task_metadata"])
+        def __method_wrapper__(
+            method: Callable, input: Dict[Any, Any]
+        ) -> ray.remote_function.RemoteFunction:
             """Ray wrapper for arbitrary function logic.
 
             Args:
@@ -146,10 +153,13 @@ class MultiCoreExecutionTool:
                 Callable: Returns a ray.remote callable object.
             """
             return method(**input)
+
         return __method_wrapper__
-        
-#%% Main Backend   
-    def __run__(self, worker:Union[Callable, ray.remote_function.RemoteFunction])->bool: 
+
+    # %% Main Backend
+    def __run__(
+        self, worker: Union[Callable, ray.remote_function.RemoteFunction]
+    ) -> bool:
         """Main execution method for the MultiCoreExecutionTool class. Runs the provided worker on the provided data.
 
         Args:
@@ -161,95 +171,112 @@ class MultiCoreExecutionTool:
         Returns:
             bool: Boolean flag that is True if the execution is successful.
         """
-        
+
         # forwards the worker to the batch method
-        return self.__batch__(worker, runIDs = 'all')
-            
-    def __batch__(self, worker:Union[Callable, ray.remote_function.RemoteFunction], *,  runIDs:Union[int, List[Any], str] = 'all')->bool: 
+        return self.__batch__(worker, runIDs="all")
+
+    def __batch__(
+        self,
+        worker: Union[Callable, ray.remote_function.RemoteFunction],
+        *,
+        runIDs: Union[int, List[Any], str] = "all",
+    ) -> bool:
         """Batch execution method for the MultiCoreExecutionTool class. Runs the provided worker on the provided data.
-        
+
         Args:
             worker (Union[Callable, ray.remote_function.RemoteFunction]): Main worker or logic. Can be either ray.remote or a callable.
             runIDs (Union[int, List[Any], str], optional): RunIDs to process. Defaults to 'all'.
-            
+
         Raises:
             Exception: Exception is raised if the core logic is not ray compatible.
-            
+
         Returns:
             bool: Boolean flag that is True if the execution
         """
-        
+
         ## check if ray is initialized
         if not ray.is_initialized():
-            raise Exception('Ray is not initialized. Use object.initialize() to initialize Ray.')
-        
+            raise Exception(
+                "Ray is not initialized. Use object.initialize() to initialize Ray."
+            )
+
         if not self.__is_ray_compatible__(worker):
             try:
                 coreLogic = worker
                 worker = self.__setup_wrapper__()
             except Exception as e:
-                print(f'Error: {e}')
+                print(f"Error: {e}")
                 return False
-        
+
         ## prepare schedule
         schedule = self.__setup_schedule__()
-        
+
         ## check for pending tasks
         if not self.__has_pending_results__():
-            print('No pending tasks found. Exiting...')
+            print("No pending tasks found. Exiting...")
             return True
-        
-        ## handle runIDs, skip if all
-        if not runIDs == 'all':
 
+        ## handle runIDs, skip if all
+        if not runIDs == "all":
             ## check for runIDs
             if not self.__RunIDs_in_RuntimeData__(runIDs):
-                print('Invalid RunIDs. Please provide a list of keys referring to the RuntimeData or a number of tasks to run that is <= the total amount of tasks.')
+                print(
+                    "Invalid RunIDs. Please provide a list of keys referring to the RuntimeData or a number of tasks to run that is <= the total amount of tasks."
+                )
                 return False
-            
+
             ## select the runIDs
             if isinstance(runIDs, int):
-                schedule = schedule[:runIDs]                    
+                schedule = schedule[:runIDs]
             elif isinstance(runIDs, list):
                 schedule = [k for k in schedule if k in runIDs]
-            else: 
-                print('Invalid RunIDs. Please provide a list of keys referring to the RuntimeData or a number of tasks to run that is <= the total amount of tasks.')
+            else:
+                print(
+                    "Invalid RunIDs. Please provide a list of keys referring to the RuntimeData or a number of tasks to run that is <= the total amount of tasks."
+                )
                 return False
-                       
+
             if self.DEBUG:
-                print(f'Running {runIDs} tasks...')
-                
+                print(f"Running {runIDs} tasks...")
+
         ## check for schedule
         if len(schedule) == 0:
-            print('No pending tasks to run. Exiting...')
+            print("No pending tasks to run. Exiting...")
             return True
-    
-        
+
         ## workflow factory
         if self.silent:
-            permision, states = self.__multicore_workflow__(worker = worker,
-                                                            schedule = schedule,
-                                                            listener = self.__silent_listener__,
-                                                            scheduler = self.__silent_scheduler__,
-                                                            coreLogic = coreLogic if 'coreLogic' in locals() else None)
+            permision, states = self.__multicore_workflow__(
+                worker=worker,
+                schedule=schedule,
+                listener=self.__silent_listener__,
+                scheduler=self.__silent_scheduler__,
+                coreLogic=coreLogic if "coreLogic" in locals() else None,
+            )
         else:
-            permision, states = self.__multicore_workflow__(worker = worker,
-                                                            schedule = schedule,
-                                                            listener = self.__verbose_listener__,
-                                                            scheduler = self.__verbose_scheduler__,
-                                                            coreLogic = coreLogic if 'coreLogic' in locals() else None)
-            
+            permision, states = self.__multicore_workflow__(
+                worker=worker,
+                schedule=schedule,
+                listener=self.__verbose_listener__,
+                scheduler=self.__verbose_scheduler__,
+                coreLogic=coreLogic if "coreLogic" in locals() else None,
+            )
+
         ## update the results
         if permision:
             for k in schedule:
-                self.RuntimeResults[k].update({'result':states[k], 'status':'completed'})
-        
-        return permision 
- 
-    def __verbose_scheduler__(self, 
-                              worker:ray.remote_function.RemoteFunction,
-                              schedule:List[Any],
-                              coreLogic:Optional[Callable])->Dict[ray.ObjectRef,int]:
+                self.RuntimeResults[k].update(
+                    {"result": states[k], "status": "completed"}
+                )
+
+        return permision
+
+    def __verbose_scheduler__(
+        self,
+        worker: ray.remote_function.RemoteFunction,
+        schedule: List[Any],
+        coreLogic: Optional[Callable],
+    ) -> Dict[ray.ObjectRef, int]:
         """Verbose scheduler that handles remote task execution.
 
         Args:
@@ -261,20 +288,32 @@ class MultiCoreExecutionTool:
             Dict[ray.ObjectRef,int]: Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
         """
         ## VERBOSE MODE
-        
+
         # if coreLogic is provided, pass it to the wrapper
         if coreLogic is not None:
-            return {worker.remote(coreLogic, self.RuntimeData_ref[schedule_index]):schedule_index
-                    for schedule_index in tqdm(schedule, total=len(schedule), desc="Scheduling Workers", position = 0)}
-        
+            return {
+                worker.remote(
+                    coreLogic, self.RuntimeData_ref[schedule_index]
+                ): schedule_index
+                for schedule_index in tqdm(
+                    schedule, total=len(schedule), desc="Scheduling Workers", position=0
+                )
+            }
+
         # if a ray compatible worker is provided, forward the worker directly
-        return {worker.remote(self.RuntimeData_ref[schedule_index]):schedule_index
-                for schedule_index in tqdm(schedule, total=len(schedule), desc="Scheduling Workers", position = 0)}
-    
-    def __silent_scheduler__(self, 
-                             worker:ray.remote_function.RemoteFunction,
-                             schedule:List,
-                             coreLogic:Optional[Callable])->Dict[ray.ObjectRef,int]:
+        return {
+            worker.remote(self.RuntimeData_ref[schedule_index]): schedule_index
+            for schedule_index in tqdm(
+                schedule, total=len(schedule), desc="Scheduling Workers", position=0
+            )
+        }
+
+    def __silent_scheduler__(
+        self,
+        worker: ray.remote_function.RemoteFunction,
+        schedule: List,
+        coreLogic: Optional[Callable],
+    ) -> Dict[ray.ObjectRef, int]:
         """Silent scheduler that handles remote task execution.
 
         Args:
@@ -286,23 +325,30 @@ class MultiCoreExecutionTool:
             Dict[ray.ObjectRef,int]: Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
         """
         ## SILENT MODE
-        
+
         # if coreLogic is provided, pass it to the wrapper
         if coreLogic is not None:
-            return {worker.remote(coreLogic, self.RuntimeData_ref[schedule_index]):schedule_index
-                    for schedule_index in schedule}
-        
+            return {
+                worker.remote(
+                    coreLogic, self.RuntimeData_ref[schedule_index]
+                ): schedule_index
+                for schedule_index in schedule
+            }
+
         # if a ray compatible worker is provided, forward the worker directly
-        return {worker.remote(self.RuntimeData_ref[schedule_index]):schedule_index
-                for schedule_index in schedule}
-        
-    def __multicore_workflow__(self,
-                               worker:Union[Callable, ray.remote_function.RemoteFunction],
-                               schedule:List[Any],
-                               listener:Callable,
-                               scheduler:Callable,
-                               coreLogic:Optional[Callable]
-                               )->Tuple[bool, Dict[int,Any]]:
+        return {
+            worker.remote(self.RuntimeData_ref[schedule_index]): schedule_index
+            for schedule_index in schedule
+        }
+
+    def __multicore_workflow__(
+        self,
+        worker: Union[Callable, ray.remote_function.RemoteFunction],
+        schedule: List[Any],
+        listener: Callable,
+        scheduler: Callable,
+        coreLogic: Optional[Callable],
+    ) -> Tuple[bool, Dict[int, Any]]:
         """Workflow for the MultiCoreExecutionTool class. Handles the main execution logic.
 
         Args:
@@ -317,21 +363,27 @@ class MultiCoreExecutionTool:
         """
         ## workflow and listening
         permission, finished_states = listener(scheduler(worker, schedule, coreLogic))
-                
+
         ## check completion
         if permission:
-            self.RuntimeResults | {k:{'result':v, 'status':'completed'} for k,v in finished_states.items()}
-                
+            self.RuntimeResults | {
+                k: {"result": v, "status": "completed"}
+                for k, v in finished_states.items()
+            }
+
             ## Shutdown Ray
             if self.DEBUG:
                 print("Multi Core Execution Complete...")
                 print("Use 'shutdown_multi_core()' to shutdown the cluster.")
-            
+
             return True, finished_states
-        
+
         return False, None
-#%% Process Listener
-    def __silent_listener__(self, object_references:Dict[ray.ObjectRef,int])->Tuple[bool, Dict[int,Any]]:   
+
+    # %% Process Listener
+    def __silent_listener__(
+        self, object_references: Dict[ray.ObjectRef, int]
+    ) -> Tuple[bool, Dict[int, Any]]:
         """Silently listenes to the ray progress and retrieves the results.
 
         Args:
@@ -340,46 +392,48 @@ class MultiCoreExecutionTool:
         Returns:
             Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
         """
-           
+
         try:
             # setup collection list
-            pending_states:list = list(object_references.keys())
-            finished_states:list = []
-            
+            pending_states: list = list(object_references.keys())
+            finished_states: list = []
+
             if self.DEBUG:
-                print('Listening to Ray Progress...')
-                
+                print("Listening to Ray Progress...")
+
             while len(pending_states) > 0:
                 try:
                     # get the ready refs
                     finished, pending_states = ray.wait(
-                        pending_states, 
+                        pending_states,
                         num_returns=len(pending_states),
                         timeout=1e-3,
-                        fetch_local=False
+                        fetch_local=False,
                     )
-                    
+
                     finished_states.extend(finished)
-                    
+
                 except KeyboardInterrupt:
-                    print('Interrupted')
+                    print("Interrupted")
                     break
-                
+
                 if self.ListenerSleeptime > 0:
                     time.sleep(self.ListenerSleeptime)
-            
+
             # sort and return the results
             if self.DEBUG:
-                print('Fetching Results...')
-            finished_states = {object_references[ref]:ref for ref in finished_states}
-            
+                print("Fetching Results...")
+            finished_states = {object_references[ref]: ref for ref in finished_states}
+
             return True, finished_states
-        
+
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False, None
 
-    def __verbose_listener__(self, object_references:Dict[ray.ObjectRef,int])->Tuple[bool, Dict[int,Any]]:
+    def __verbose_listener__(
+        self, object_references: Dict[ray.ObjectRef, int]
+    ) -> Tuple[bool, Dict[int, Any]]:
         """Listenes to and reports on the ray progress and system CPU and Memory. Retrieves results of successful tasks.
 
         Args:
@@ -390,83 +444,97 @@ class MultiCoreExecutionTool:
         """
         try:
             if self.DEBUG:
-                print('Setting up progress monitors...')
-                
+                print("Setting up progress monitors...")
+
             ## create progress monitors
-            core_progress = tqdm(total = len(object_references), desc = 'Workers', position = 1)
-            cpu_progress = tqdm(total = 100, desc="CPU usage", bar_format='{desc}: {percentage:3.0f}%|{bar}|', position = 2)
-            mem_progress = tqdm(total=psutil.virtual_memory().total, desc="RAM usage", bar_format='{desc}: {percentage:3.0f}%|{bar}|', position = 3)
-            
+            core_progress = tqdm(
+                total=len(object_references), desc="Workers", position=1
+            )
+            cpu_progress = tqdm(
+                total=100,
+                desc="CPU usage",
+                bar_format="{desc}: {percentage:3.0f}%|{bar}|",
+                position=2,
+            )
+            mem_progress = tqdm(
+                total=psutil.virtual_memory().total,
+                desc="RAM usage",
+                bar_format="{desc}: {percentage:3.0f}%|{bar}|",
+                position=3,
+            )
+
             # setup collection list
-            pending_states:list = list(object_references.keys())
-            finished_states:list = []
-            
+            pending_states: list = list(object_references.keys())
+            finished_states: list = []
+
             if self.DEBUG:
-                print('Listening to Ray Progress...')
+                print("Listening to Ray Progress...")
             ## listen for progress
             while len(pending_states) > 0:
                 try:
                     # get the ready refs
                     finished, pending_states = ray.wait(
-                        pending_states, 
+                        pending_states,
                         num_returns=len(pending_states),
                         timeout=1e-3,
-                        fetch_local=False
+                        fetch_local=False,
                     )
-                    
+
                     finished_states.extend(finished)
-                    
+
                     # update the progress bars
                     mem_progress.n = psutil.virtual_memory().used
                     mem_progress.refresh()
-                    
+
                     cpu_progress.n = psutil.cpu_percent()
                     cpu_progress.refresh()
-                    
+
                     # update the progress bar
                     core_progress.n = len(finished_states)
                     core_progress.refresh()
-                
+
                     # sleep for a bit
                     if self.ListenerSleeptime > 0:
                         time.sleep(self.ListenerSleeptime)
-                    
+
                 except KeyboardInterrupt:
-                    print('Interrupted')
+                    print("Interrupted")
                     break
-            
+
             # set the progress bars to success
-            core_progress.colour = 'green'
-            cpu_progress.colour = 'green'
-            mem_progress.colour = 'green'
-            
+            core_progress.colour = "green"
+            cpu_progress.colour = "green"
+            mem_progress.colour = "green"
+
             # set the progress bars to their final values
             core_progress.n = len(object_references)
             cpu_progress.n = 0
             mem_progress.n = 0
-            
+
             # close the progress bars
             core_progress.close()
             cpu_progress.close()
             mem_progress.close()
-            
+
             # sort and return the results
             if self.DEBUG:
-                print('Fetching Results...')
-            finished_states = {object_references[ref]:ref for ref in finished_states}
-            
+                print("Fetching Results...")
+            finished_states = {object_references[ref]: ref for ref in finished_states}
+
             if self.DEBUG:
-                print('Ray Progress Complete...')
-            
+                print("Ray Progress Complete...")
+
             return True, finished_states
-        
+
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False, None
 
-##### API #####
-#%% Main Execution
-    def run(self, worker:Union[Callable, ray.remote_function.RemoteFunction])->Union[bool, Dict[Any,Dict[str,Any]]]:
+    ##### API #####
+    # %% Main Execution
+    def run(
+        self, worker: Union[Callable, ray.remote_function.RemoteFunction]
+    ) -> Union[bool, Dict[Any, Dict[str, Any]]]:
         """Run API for the MultiCoreExecutionTool class. Main API for running the provided worker on the provided data.
 
         Args:
@@ -476,25 +544,30 @@ class MultiCoreExecutionTool:
             bool: Boolean flag that is True if the execution was successful.
         """
         try:
-            permission:bool = self.__run__(worker)
+            permission: bool = self.__run__(worker)
             assert permission
-            
+
             if self.DEBUG:
-                print('Multi Core Execution Complete...')
+                print("Multi Core Execution Complete...")
                 print('Use "get_results()" to get the results.')
-                
+
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
-        
+
         if self.SingleShot:
-            assert self.next(), 'Error: Could not move to next task.'
+            assert self.next(), "Error: Could not move to next task."
             return self.get_results()
-        
+
         if self.AutoContinue:
             return self.next()
-        
-    def batch(self, worker:Union[Callable, ray.remote_function.RemoteFunction], *, runIDs:Union[int, List[Any], str] = 'all')->Union[bool, Dict[Any,Dict[str,Any]]]:
+
+    def batch(
+        self,
+        worker: Union[Callable, ray.remote_function.RemoteFunction],
+        *,
+        runIDs: Union[int, List[Any], str] = "all",
+    ) -> Union[bool, Dict[Any, Dict[str, Any]]]:
         """Batch API for the MultiCoreExecutionTool class. Main API for running the provided worker on the provided data.
 
         Args:
@@ -505,59 +578,63 @@ class MultiCoreExecutionTool:
             bool: Boolean flag that is True if the execution was successful.
         """
         try:
-            permission:bool = self.__batch__(worker, runIDs = runIDs)
+            permission: bool = self.__batch__(worker, runIDs=runIDs)
             assert permission
-            
+
             if self.DEBUG:
-                print('Multi Core Execution Complete...')
+                print("Multi Core Execution Complete...")
                 print('Use "get_results()" to get the results.')
-                
+
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
-        
+
         if self.SingleShot:
-            assert self.next(), 'Error: Could not move to next task.'
+            assert self.next(), "Error: Could not move to next task."
             return self.get_results()
-        
+
         if self.AutoContinue:
             return self.next()
 
-#%% Runtime Control 
-    def initialize(self)->NoReturn:
+    # %% Runtime Control
+    def initialize(self) -> NoReturn:
         """Initialize the Ray cluster using the parameters found in sel.RuntimeMetadata['instance_metadata']".
            See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
             NoReturn: No Return.
-        """        
+        """
         try:
             assert self.__initialize_ray_cluster__()
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return None
-    def shutdown(self)->NoReturn:
+
+    def shutdown(self) -> NoReturn:
         """Shutdown the Ray cluster.
 
         Returns:
             NoReturn: No Return.
         """
         self.__shutdown__()
-    def reset(self)->NoReturn:
+
+    def reset(self) -> NoReturn:
         """Resets RuntimeData and RuntimeData reference. Restores RuntimeMetadata defaults.
 
         Returns:
             NoReturn: No Return.
         """
         self.__reset__()
-    def reboot(self)->NoReturn:
+
+    def reboot(self) -> NoReturn:
         """Reboot the MultiCoreExecutionTool object. Can be provided with new instance parameters. See instance attributes for more information.
 
         Returns:
             NoReturn: No Return.
         """
         self.__reboot__()
-    def launch_dashboard(self)->bool:
+
+    def launch_dashboard(self) -> bool:
         """Launch ray dashboard in default browser.
 
         Returns:
@@ -565,8 +642,8 @@ class MultiCoreExecutionTool:
         """
         return self.__launch_dashboard__()
 
-#%% Runtime Data Control
-    def update_data(self, RuntimeData:Dict[Any,Dict[Any,Any]])->NoReturn:
+    # %% Runtime Data Control
+    def update_data(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
         """Update the RuntimeData with the provided data.
 
         Args:
@@ -576,31 +653,31 @@ class MultiCoreExecutionTool:
             NoReturn: No Return.
         """
         self.__update_data__(RuntimeData)
-        
-    def update_metadata(self, **kwargs)->NoReturn:
+
+    def update_metadata(self, **kwargs) -> NoReturn:
         self.RuntimeMetadata.update(kwargs)
 
-#%% Runtime Handling Backend
-    def __initialize_metadata__(self,**kwargs)->NoReturn:
+    # %% Runtime Handling Backend
+    def __initialize_metadata__(self, **kwargs) -> NoReturn:
         """Initializes the metadata for the MultiCoreExecutionTool class. Contains default values and will overwrite with given values.
 
         Returns:
             NoReturn: No Return
         """
         ## Default Metadata
-        self.RuntimeMetadata = {'instance_metadata':{'num_cpus': 1,
-                                                     'num_gpus': 0,
-                                                     'address': None,
-                                                     'ignore_reinit_error': True},
-                                 'task_metadata': {'num_cpus': 1,
-                                                   'num_gpus': 0,
-                                                   'num_returns': None},
-                                 }
+        self.RuntimeMetadata = {
+            "instance_metadata": {
+                "num_cpus": 1,
+                "num_gpus": 0,
+                "address": None,
+                "ignore_reinit_error": True,
+            },
+            "task_metadata": {"num_cpus": 1, "num_gpus": 0, "num_returns": None},
+        }
         # update metadata with given values
         self.RuntimeMetadata.update(kwargs)
 
-    
-    def __offload_on_init__(self, RuntimeData:Dict[Any,Dict[Any,Any]])->NoReturn:
+    def __offload_on_init__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
         """Offload RuntimeData items to ray cluster on initialization if RuntimeData is provided.
 
         Args:
@@ -611,78 +688,84 @@ class MultiCoreExecutionTool:
         """
         ## This has to be called AFTER the ray is initialized
         # otherwise, a new ray object will be created and the object references will be unreachable from within the main ray object.
-        
+
         if RuntimeData is None:
-            print('No Runtime Data provided. Use the "update_data()" method to update the Runtime Data prior to running methods.')
+            print(
+                'No Runtime Data provided. Use the "update_data()" method to update the Runtime Data prior to running methods.'
+            )
             return None
-        
+
         ## Set RuntimeData
         self.RuntimeData = RuntimeData if RuntimeData is not None else None
-        self.RuntimeData_ref = self.__offload_data__() if RuntimeData is not None else None
-        self.RuntimeResults = self.__setup_RuntimeResults__() if RuntimeData is not None else None
+        self.RuntimeData_ref = (
+            self.__offload_data__() if RuntimeData is not None else None
+        )
+        self.RuntimeResults = (
+            self.__setup_RuntimeResults__() if RuntimeData is not None else None
+        )
         self.RuntimeArchive = {} if RuntimeData is not None else None
-        
-    def __initialize_ray_cluster__(self)->bool:
+
+    def __initialize_ray_cluster__(self) -> bool:
         """Initialize the Ray cluster using the parameters found in sel.RuntimeMetadata['instance_metadata']".
            See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
-           
+
         Returns:
             NoReturn: No Return
         """
-    
+
         if self.__is_initalized__():
             print('Ray is already initialized. Use "reboot()" to reboot the object.')
             return False
-    
+
         if self.DEBUG:
-            print('Setting up Ray...')
-        
+            print("Setting up Ray...")
+
         # shutdown any stray ray instances
         ray.shutdown()
-        
+
         # ray init
-        cluster_context = ray.init(**self.RuntimeMetadata['instance_metadata'])
+        cluster_context = ray.init(**self.RuntimeMetadata["instance_metadata"])
         self.DashboardURL = f"http://{cluster_context.dashboard_url}/"
 
         # dashboard
         if self.AutoLaunchDashboard:
             self.__launch_dashboard__()
-        
+
         if self.DEBUG:
-            print('Ray setup complete...')
-            print(f'Ray Dashboard: {self.DashboardURL}')
-        
+            print("Ray setup complete...")
+            print(f"Ray Dashboard: {self.DashboardURL}")
+
         # set the runtime context
         self.runimte_context = cluster_context
-        
+
         return True
-    
-    def __shutdown__(self)->bool:
+
+    def __shutdown__(self) -> bool:
         """Shutdown the Ray cluster.
 
         Returns:
             bool: True if the shutdown was successful.
         """
         if self.DEBUG:
-            print('Shutting down Ray...')
+            print("Shutting down Ray...")
         try:
             ray.shutdown()
             return True
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
-        
-    def __reset__(self)->NoReturn:
+
+    def __reset__(self) -> NoReturn:
         """Resets RuntimeData and RuntimeData reference. Restores RuntimeMetadata defaults.
-        
+
         Returns:
             NoReturn: No Return
         """
         self.RuntimeData_ref = None
         self.RuntimeData = None
         self.__initialize_metadata__()
-         
-    def __reboot__(self)->NoReturn:
+
+    def __reboot__(self) -> NoReturn:
         """Reboots the MultiCoreExecutionTool object. Can be provided with new instance parameters. See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
@@ -693,81 +776,85 @@ class MultiCoreExecutionTool:
             self.__initialize_ray_cluster__()
             self.__offload_data__()
         except Exception as e:
-            print(f'Error: {e}')
-            
-    def __launch_dashboard__(self)->bool:
+            print(f"Error: {e}")
+
+    def __launch_dashboard__(self) -> bool:
         """Launch ray dashboard in default browser.
 
         Returns:
             bool: Status of the operation.
         """
         if self.DEBUG:
-            print('Preparing to launch ray dashboard...')
-        
+            print("Preparing to launch ray dashboard...")
+
         if not self.__is_initalized__():
             print('Ray is not initialized. Use "initialize()" to initialize Ray.')
             return False
-    
+
         try:
-            webbrowser.get('windows-default').open(self.DashboardURL,
-                                                    autoraise = True,
-                                                    new = 2)
+            webbrowser.get("windows-default").open(
+                self.DashboardURL, autoraise=True, new=2
+            )
             return True
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
 
-#%% Runtime Data Handling
-    def __setup_schedule__(self)->List[Any]:
+    # %% Runtime Data Handling
+    def __setup_schedule__(self) -> List[Any]:
         """Bundle the RuntimeData keys into a list for scheduling.
 
         Returns:
             List[Any]: List of keys referring to RuntimeData values to be processed using the provided method.
         """
-        return [k for k,v in self.RuntimeResults.items() if v['status'] == 'pending']
-    
-    def __setup_RuntimeResults__(self)->Dict[int,Dict[str,Any]]:
+        return [k for k, v in self.RuntimeResults.items() if v["status"] == "pending"]
+
+    def __setup_RuntimeResults__(self) -> Dict[int, Dict[str, Any]]:
         """Setup the RuntimeResults dictionary.
 
         Returns:
             Dict[int,Dict[str,Any]]: Dictionary containing the results of the execution
         """
-        return {k:{'result':None, 'status':'pending'} for k in self.RuntimeData.keys()}
-    
-    def __offload_data__(self)->Dict[int,ray.ObjectRef]:
+        return {
+            k: {"result": None, "status": "pending"} for k in self.RuntimeData.keys()
+        }
+
+    def __offload_data__(self) -> Dict[int, ray.ObjectRef]:
         """Offload the RuntimeData to the ray cluster.
 
         Returns:
             Dict[int,ray.ObjectRef]: Dictionary of keys and ray object references.
         """
         if self.DEBUG:
-            print('Offloading data to Ray...')
-        return {k:ray.put(v) for k,v in self.RuntimeData.items()}
-    
-    def __move_results_to_archive__(self)->NoReturn:
+            print("Offloading data to Ray...")
+        return {k: ray.put(v) for k, v in self.RuntimeData.items()}
+
+    def __move_results_to_archive__(self) -> NoReturn:
         """Move the RuntimeResults to the RuntimeArchive.
 
         Returns:
             NoReturn: No Return
         """
         if self.DEBUG:
-            print('Moving results to RuntimeArchive...')
-        
+            print("Moving results to RuntimeArchive...")
+
         # set status to archived
-        for k,v in self.RuntimeResults.items():
-            if v['status'] == 'completed':
-                v['status'] = 'archived'
-            if v['status'] == 'retrieved':
-                v['status'] = 'archived'
-            if v['status'] == 'pending':
-                v['status'] = 'no result'
-                
+        for k, v in self.RuntimeResults.items():
+            if v["status"] == "completed":
+                v["status"] = "archived"
+            if v["status"] == "retrieved":
+                v["status"] = "archived"
+            if v["status"] == "pending":
+                v["status"] = "no result"
+
         # write to archive
-        self.RuntimeArchive[datetime.datetime.now().isoformat(timespec='seconds')] = deepcopy(self.RuntimeResults)
+        self.RuntimeArchive[datetime.datetime.now().isoformat(timespec="seconds")] = (
+            deepcopy(self.RuntimeResults)
+        )
         # reset results
         self.RuntimeResults = self.__setup_RuntimeResults__()
 
-    def __update_data__(self, RuntimeData:Dict[Any,Dict[Any,Any]])->NoReturn:
+    def __update_data__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
         """Update the RuntimeData with the provided data and offload the data to the ray cluster.
 
         Args:
@@ -777,19 +864,19 @@ class MultiCoreExecutionTool:
             NoReturn: No Return
         """
         if self.DEBUG:
-            print('Updating Runtime Data...')
-            
+            print("Updating Runtime Data...")
+
         self.RuntimeData = RuntimeData
         self.RuntimeData_ref = self.__offload_data__()
-        
+
         if self.RuntimeResults is not None and self.AutoArchive:
             self.__move_results_to_archive__()
-            print('Previous results detected and moved to RuntimArchive.')
-        else: 
+            print("Previous results detected and moved to RuntimArchive.")
+        else:
             self.RuntimeResults = self.__setup_RuntimeResults__()
 
-#%% Helper
-    def __is_ray_compatible__(self, func:Callable)->bool:
+    # %% Helper
+    def __is_ray_compatible__(self, func: Callable) -> bool:
         """Check if the provided function is ray compatible.
 
         Args:
@@ -800,49 +887,49 @@ class MultiCoreExecutionTool:
         """
         if isinstance(func, ray.remote_function.RemoteFunction):
             return True
-        return False 
-    
-    def __is_initalized__(self)->bool:
+        return False
+
+    def __is_initalized__(self) -> bool:
         """Check of the Ray cluster is initialized.
 
         Returns:
             bool: True if the Ray cluster is initialized. False otherwise.
         """
         if self.DEBUG:
-            print('Checking Ray Status...')
+            print("Checking Ray Status...")
         return ray.is_initialized()
-    
-    def __has_pending_results__(self)->bool:
+
+    def __has_pending_results__(self) -> bool:
         """Check if there are pending results.
 
         Returns:
             bool: True if there are pending results. False otherwise.
         """
         if self.DEBUG:
-            print('Checking for pending results...')
-        return any([v['status'] == 'pending' for k,v in self.RuntimeResults.items()])
-    
-    def __has_completed_results__(self)->bool:
+            print("Checking for pending results...")
+        return any([v["status"] == "pending" for k, v in self.RuntimeResults.items()])
+
+    def __has_completed_results__(self) -> bool:
         """Check if there are completed results.
 
         Returns:
             bool: True if there are completed results. False otherwise.
         """
         if self.DEBUG:
-            print('Checking for completed results...')
-        return any([v['status'] == 'completed' for k,v in self.RuntimeResults.items()])    
-    
-    def __all_results_retrieved__(self)->bool:
+            print("Checking for completed results...")
+        return any([v["status"] == "completed" for k, v in self.RuntimeResults.items()])
+
+    def __all_results_retrieved__(self) -> bool:
         """Check if all results are retrieved.
 
         Returns:
             bool: True if all results are retrieved. False otherwise.
         """
         if self.DEBUG:
-            print('Checking if all results are retrieved...')
-        return all([v['status'] == 'retrieved' for k,v in self.RuntimeResults.items()])    
-    
-    def __RunIDs_in_RuntimeData__(self, RunIDs:Union[int, List[Any]])->bool:
+            print("Checking if all results are retrieved...")
+        return all([v["status"] == "retrieved" for k, v in self.RuntimeResults.items()])
+
+    def __RunIDs_in_RuntimeData__(self, RunIDs: Union[int, List[Any]]) -> bool:
         """Check if the provided RunIDs are in the RuntimeData.
 
         Args:
@@ -852,90 +939,92 @@ class MultiCoreExecutionTool:
             bool: True if the RunIDs are in the RuntimeData. False otherwise.
         """
         if self.DEBUG:
-            print('Checking if RunIDs are in RuntimeData...')
+            print("Checking if RunIDs are in RuntimeData...")
         if isinstance(RunIDs, int):
             return RunIDs <= len(self.RuntimeData)
         return all([k in self.RuntimeData.keys() for k in RunIDs])
-    
-    def retreive_data(self)->bool:
+
+    def retreive_data(self) -> bool:
         """Retreive the RuntimeData.
 
         Returns:
             Dict[Any,Dict[Any,Any]]: Structured data to be processed by the methods.
         """
         if self.DEBUG:
-            print('Retreiving Data...')
-        
+            print("Retreiving Data...")
+
         if self.RuntimeResults is None:
             print('No results found. Use the "run()" method to get results.')
             return False
-        
+
         try:
-            for refKey,objRef in self.RuntimeResults.items():
-                if objRef['status'] == 'completed':
-                    self.RuntimeResults[refKey].update({'result':ray.get(objRef['result'])})
-                    self.RuntimeResults[refKey].update({'status':'retrieved'})
+            for refKey, objRef in self.RuntimeResults.items():
+                if objRef["status"] == "completed":
+                    self.RuntimeResults[refKey].update(
+                        {"result": ray.get(objRef["result"])}
+                    )
+                    self.RuntimeResults[refKey].update({"status": "retrieved"})
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
-                
+
         return True
-    
-    def get_results(self)->Dict[Any,Dict[str,Any]]:
+
+    def get_results(self) -> Dict[Any, Dict[str, Any]]:
         """Returns RuntimeResults.
 
         Returns:
             Dict[Any,Dict[Any,Any]]: Structured data containing the results of the execution.
         """
         if self.DEBUG:
-            print('Fetching Results...')
-        
+            print("Fetching Results...")
+
         if self.RuntimeResults is None:
             print('No results found. Use the "run()" method to get results.')
             return None
-        
+
         if self.__has_pending_results__():
             print('Pending results found. Use the "run()" method to get results.')
-        
+
         if self.__all_results_retrieved__():
             return deepcopy(self.RuntimeResults)
-        
+
         elif self.__has_completed_results__():
             self.retreive_data()
             return deepcopy(self.RuntimeResults)
-        
+
         else:
             print('No results found. Use the "run()" method to get results.')
             return None
-        
-    def archive(self)->bool:
+
+    def archive(self) -> bool:
         """Move the RuntimeResults to the RuntimeArchive.
 
         Returns:
             NoReturn: No Return.
         """
         if self.DEBUG:
-            print('Archiving Results...')        
+            print("Archiving Results...")
         try:
             self.__move_results_to_archive__()
             return True
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
-        
-    def next(self)->bool:
+
+    def next(self) -> bool:
         if self.DEBUG:
-            print('Moving to next task...')
-        
+            print("Moving to next task...")
+
         if self.__has_pending_results__():
-            print('Pending results found. Continuing to next task.')
-        
+            print("Pending results found. Continuing to next task.")
+
         try:
             if self.AutoArchive:
                 self.__move_results_to_archive__()
             self.RuntimeResults = self.__setup_RuntimeResults__()
-            
+
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             return False
         return True
