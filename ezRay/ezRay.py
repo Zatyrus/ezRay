@@ -657,6 +657,14 @@ class MultiCoreExecutionTool:
     def update_metadata(self, **kwargs) -> NoReturn:
         self.RuntimeMetadata.update(kwargs)
 
+        ## check if the metadata is valid
+        ## we will only notify the user if the metadata is invalid or the DEBUG flag is set
+        status = self.__ressource_requirements_met__()
+        if not status:
+            print("Please adjust the metadata.")
+        elif status and self.DEBUG:
+            print("Metadata updated.")
+
     # %% Runtime Handling Backend
     def __initialize_metadata__(self, **kwargs) -> NoReturn:
         """Initializes the metadata for the MultiCoreExecutionTool class. Contains default values and will overwrite with given values.
@@ -676,6 +684,14 @@ class MultiCoreExecutionTool:
         }
         # update metadata with given values
         self.RuntimeMetadata.update(kwargs)
+
+        ## check if the metadata is valid
+        ## we will only notify the user if the metadata is invalid or the DEBUG flag is set
+        status = self.__ressource_requirements_met__()
+        if not status:
+            print("Please adjust the metadata.")
+        elif status and self.DEBUG:
+            print("Metadata updated.")
 
     def __offload_on_init__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
         """Offload RuntimeData items to ray cluster on initialization if RuntimeData is provided.
@@ -869,13 +885,115 @@ class MultiCoreExecutionTool:
         self.RuntimeData = RuntimeData
         self.RuntimeData_ref = self.__offload_data__()
 
-        if self.RuntimeResults is not None and self.AutoArchive:
+        if (
+            self.RuntimeResults is not None
+            and self.AutoArchive
+            and not self.__all_results_pending__()
+        ):
             self.__move_results_to_archive__()
             print("Previous results detected and moved to RuntimArchive.")
         else:
             self.RuntimeResults = self.__setup_RuntimeResults__()
 
     # %% Helper
+    def __cpus_available__(self) -> bool:
+        """Check if the Ray cluster has enough CPUs.
+
+        Args:
+            num_cpus (int): Number of CPUs.
+
+        Returns:
+            bool: True if the Ray cluster has enough CPUs. False otherwise.
+        """
+        if self.DEBUG:
+            print("Checking CPU availability...")
+        try:
+            assert (
+                psutil.cpu_count()
+                >= self.RuntimeMetadata["instance_metadata"]["num_cpus"]
+            )
+            return True
+        except AssertionError:
+            print("Error: Not enough CPUs available.")
+            print(
+                "Requested CPUs: ",
+                self.RuntimeMetadata["instance_metadata"]["num_cpus"],
+            )
+            print("Available CPUs: ", psutil.cpu_count())
+            return False
+
+    def __tasks_meet_cpu_requirements__(self) -> bool:
+        """Check if the tasks meet the CPU requirements.
+
+        Args:
+            num_cpus (int): Number of CPUs.
+
+        Returns:
+            bool: True if the tasks meet the CPU requirements. False otherwise.
+        """
+        if self.DEBUG:
+            print("Checking CPU requirements...")
+        try:
+            assert (
+                self.RuntimeMetadata["task_metadata"]["num_cpus"]
+                <= self.RuntimeMetadata["instance_metadata"]["num_cpus"]
+            )
+            return True
+        except AssertionError:
+            print(
+                "Error: Tasks are assigned too many CPUs. None will be able to execute on the Ray cluster."
+            )
+            print(
+                "Requested CPUs per Task: ",
+                self.RuntimeMetadata["task_metadata"]["num_cpus"],
+            )
+            print(
+                "Available CPUs in Cluster: ",
+                self.RuntimeMetadata["instance_metadata"]["num_cpus"],
+            )
+            print(
+                "Please adjust the number of CPUs per task. Or increase the number of CPUs in the Ray cluster."
+            )
+            return False
+
+    def __warn_gpu_is_used__(self) -> bool:
+        """Check if the Ray cluster has enough GPUs.
+
+        Args:
+            num_gpus (int): Number of GPUs.
+
+        Returns:
+            bool: True if the Ray cluster has enough GPUs. False otherwise.
+        """
+        if self.DEBUG:
+            print("Checking GPU ise used...")
+        if self.RuntimeMetadata["instance_metadata"]["num_gpus"] > 0:
+            print("Warning: GPU is used.")
+            print("Please make sure that the Ray cluster has enough GPUs.")
+            print("You may need to manually check the GPU availability.")
+            print(
+                "Alternatively, you can use torch.cuda.is_available() to check the GPU availability."
+            )
+        return True
+
+    def __ressource_requirements_met__(self) -> bool:
+        """Check if the ressource requirements are met.
+
+        Args:
+            num_cpus (int): Number of CPUs.
+            num_gpus (int): Number of GPUs.
+
+        Returns:
+            bool: True if the ressource requirements are met. False otherwise.
+        """
+        if self.DEBUG:
+            print("Checking ressource requirements...")
+        return (
+            self.__cpus_available__()
+            and self.__warn_gpu_is_used__()
+            and self.__tasks_meet_cpu_requirements__()
+        )
+
     def __is_ray_compatible__(self, func: Callable) -> bool:
         """Check if the provided function is ray compatible.
 
@@ -908,6 +1026,16 @@ class MultiCoreExecutionTool:
         if self.DEBUG:
             print("Checking for pending results...")
         return any([v["status"] == "pending" for k, v in self.RuntimeResults.items()])
+
+    def __all_results_pending__(self) -> bool:
+        """Check if all results are pending.
+
+        Returns:
+            bool: True if all results are pending. False otherwise.
+        """
+        if self.DEBUG:
+            print("Checking if all results are pending...")
+        return all([v["status"] == "pending" for k, v in self.RuntimeResults.items()])
 
     def __has_completed_results__(self) -> bool:
         """Check if there are completed results.
@@ -997,7 +1125,39 @@ class MultiCoreExecutionTool:
             print('No results found. Use the "run()" method to get results.')
             return None
 
-    def archive(self) -> bool:
+    def get_archive(self) -> Dict[str, Dict[Any, Dict[str, Any]]]:
+        """Returns RuntimeArchive.
+
+        Returns:
+            Dict[str,Dict[Any,Dict[str,Any]]]: Structured data containing the archived results.
+        """
+        if self.DEBUG:
+            print("Fetching Archive...")
+        return deepcopy(self.RuntimeArchive)
+
+    def get_archive_keys(self) -> List[str]:
+        """Returns the keys of the RuntimeArchive.
+
+        Returns:
+            List[str]: List of keys referring to the RuntimeArchive values.
+        """
+        if self.DEBUG:
+            print("Fetching Archive Keys...")
+        return list(self.RuntimeArchive.keys())
+
+    def get_all_results(
+        self,
+    ) -> Tuple[Dict[Any, Dict[str, Any]], Dict[str, Dict[Any, Dict[str, Any]]]]:
+        """Returns RuntimeResults and RuntimeArchive.
+
+        Returns:
+            Tuple[Dict[Any,Dict[str,Any]],Dict[str,Dict[Any,Dict[str,Any]]]: Structured data containing the results of the execution and the archived results.
+        """
+        if self.DEBUG:
+            print("Fetching All Results...")
+        return deepcopy(self.RuntimeResults), deepcopy(self.RuntimeArchive)
+
+    def archive_results(self) -> bool:
         """Move the RuntimeResults to the RuntimeArchive.
 
         Returns:

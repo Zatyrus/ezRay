@@ -6,6 +6,7 @@ pip install ezRay
 # Quick Start Guide
 ```python
 from ezRay import MultiCoreExecutionTool
+import ray
 
 # configure ezRay
 instance_metadata:dict = {
@@ -20,9 +21,14 @@ MultiCore = MultiCoreExecutionTool(instance_metadata = instance_metadata)
 # launch ray dashboard (optional)
 MultiCore.launch_dashboard()
 
-# define a task
+# define any task
 def do_something(foo:int, bar:int) -> int:
     return foo + bar
+
+# or use a ray.remote object
+@ray.remote
+def do_something_remote(foo:int, bar:int) -> int:
+    return foo - bar
 
 # prepare your data in a dictionary. They keys work as identifiers, while the values should be dictionaries matching the function signature.
 data = {
@@ -38,14 +44,19 @@ MultiCore.update_data(data)
 MultiCore.run(do_something)
 
 # get the results
-results = MultiCore.get_results()
-```
+results_first_task = MultiCore.get_results()
 
-## A ray.remote object can be used interchangeably with a function
-```python
-@ray.remote(num_cpus=1, num_gpus=0, num_returns=1)
-def do_something_remtoe(foo:int, bar:int) -> int:
-    return foo + bar
+## prepare for the next run
+# this will automaticall archive current results
+# alternatively you can use MultiCore.archive_results()
+MultiCore.next()
 
+# run a second task
 MultiCore.run(do_something_remote)
+
+# get current results
+results_second_task = MultiCore.get_results()
+
+# get the archived results
+archive = MultiCore.get_archive()
 ```
