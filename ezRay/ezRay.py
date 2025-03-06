@@ -87,8 +87,11 @@ class MultiCoreExecutionTool:
 
         if "SingleShot" in kwargs.keys():
             self.SingleShot = kwargs["SingleShot"]
-            self.AutoArchive = False
-            self.AutoContinue = True
+
+            if self.SingleShot:
+                self.AutoArchive = False
+                self.AutoContinue = True
+                print("SingleShot mode is enabled. Archive disabled. AutoContinue enabled.")
 
         self.__post_init__(RuntimeData, **kwargs)
 
