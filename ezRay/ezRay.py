@@ -1,6 +1,5 @@
 ## Dependencies:
 import json
-import time
 import webbrowser
 import datetime
 from copy import deepcopy
@@ -20,11 +19,15 @@ from IPython import get_ipython
 try:
     ipy_str = str(type(get_ipython()))
     if "zmqshell" in ipy_str:
-        from tqdm.notebook import tqdm
+        pass
     else:
-        from tqdm import tqdm
+        pass
 except Exception as _:
-    from tqdm import tqdm
+    pass
+
+## loal
+from .scheduler import Scheduler
+from .listener import Listener
 
 
 # %% Multi Core Execution Main
@@ -48,7 +51,7 @@ class MultiCoreExecutionTool:
 
     def __init__(
         self, RuntimeData: Dict[Any, Dict[Any, Any]] = None, /, **kwargs
-    ) -> "MultiCoreExecutionTool":
+    ) -> NoReturn:
         """Constructor for the MultiCoreExecutionTool class.
 
         Args:
@@ -252,97 +255,29 @@ class MultiCoreExecutionTool:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=self.__silent_listener__,
-                scheduler=self.__silent_scheduler__,
+                listener=Listener(DEBUG = self.DEBUG, ListenerSleeptime = self.ListenerSleeptime).silent,
+                scheduler=Scheduler(DEBUG = self.DEBUG).silent,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
         else:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=self.__verbose_listener__,
-                scheduler=self.__verbose_scheduler__,
+                listener=Listener(DEBUG = self.DEBUG, ListenerSleeptime = self.ListenerSleeptime).verbose,
+                scheduler=Scheduler(DEBUG = self.DEBUG).verbose,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
 
         ## update the results
         if permision:
+            if self.DEBUG:
+                print("Writing result refs to RuntimeResults...")
             for k in schedule:
                 self.RuntimeResults[k].update(
                     {"result": states[k], "status": "completed"}
                 )
 
         return permision
-
-    def __verbose_scheduler__(
-        self,
-        worker: ray.remote_function.RemoteFunction,
-        schedule: List[Any],
-        coreLogic: Optional[Callable],
-    ) -> Dict[ray.ObjectRef, int]:
-        """Verbose scheduler that handles remote task execution.
-
-        Args:
-            worker (ray.remote_function.RemoteFunction): Remote callable object. See ray.remote for more information.
-            schedule (List[Any]): List of keys referring to RuntimeData values to be processed using the provided method.
-            coreLogic (Optional[Callable]): Core logic of local function that will be forwarded to ray.
-
-        Returns:
-            Dict[ray.ObjectRef,int]: Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
-        """
-        ## VERBOSE MODE
-
-        # if coreLogic is provided, pass it to the wrapper
-        if coreLogic is not None:
-            return {
-                worker.remote(
-                    coreLogic, self.RuntimeData_ref[schedule_index]
-                ): schedule_index
-                for schedule_index in tqdm(
-                    schedule, total=len(schedule), desc="Scheduling Workers", position=0
-                )
-            }
-
-        # if a ray compatible worker is provided, forward the worker directly
-        return {
-            worker.remote(self.RuntimeData_ref[schedule_index]): schedule_index
-            for schedule_index in tqdm(
-                schedule, total=len(schedule), desc="Scheduling Workers", position=0
-            )
-        }
-
-    def __silent_scheduler__(
-        self,
-        worker: ray.remote_function.RemoteFunction,
-        schedule: List,
-        coreLogic: Optional[Callable],
-    ) -> Dict[ray.ObjectRef, int]:
-        """Silent scheduler that handles remote task execution.
-
-        Args:
-            worker (ray.remote_function.RemoteFunction): Remote callable object. See ray.remote for more information.
-            schedule (List[Any]): List of keys referring to RuntimeData values to be processed using the provided method.
-            coreLogic (Optional[Callable]): Core logic of local function that will be forwarded to ray.
-
-        Returns:
-            Dict[ray.ObjectRef,int]: Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
-        """
-        ## SILENT MODE
-
-        # if coreLogic is provided, pass it to the wrapper
-        if coreLogic is not None:
-            return {
-                worker.remote(
-                    coreLogic, self.RuntimeData_ref[schedule_index]
-                ): schedule_index
-                for schedule_index in schedule
-            }
-
-        # if a ray compatible worker is provided, forward the worker directly
-        return {
-            worker.remote(self.RuntimeData_ref[schedule_index]): schedule_index
-            for schedule_index in schedule
-        }
 
     def __multicore_workflow__(
         self,
@@ -365,7 +300,7 @@ class MultiCoreExecutionTool:
             Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
         """
         ## workflow and listening
-        permission, finished_states = listener(scheduler(worker, schedule, coreLogic))
+        permission, finished_states = listener(scheduler(worker, self.RuntimeData_ref, schedule, coreLogic))
 
         ## check completion
         if permission:
@@ -382,156 +317,6 @@ class MultiCoreExecutionTool:
             return True, finished_states
 
         return False, None
-
-    # %% Process Listener
-    def __silent_listener__(
-        self, object_references: Dict[ray.ObjectRef, int]
-    ) -> Tuple[bool, Dict[int, Any]]:
-        """Silently listenes to the ray progress and retrieves the results.
-
-        Args:
-            object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
-
-        Returns:
-            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
-        """
-
-        try:
-            # setup collection list
-            pending_states: list = list(object_references.keys())
-            finished_states: list = []
-
-            if self.DEBUG:
-                print("Listening to Ray Progress...")
-
-            while len(pending_states) > 0:
-                try:
-                    # get the ready refs
-                    finished, pending_states = ray.wait(
-                        pending_states,
-                        num_returns=len(pending_states),
-                        timeout=1e-3,
-                        fetch_local=False,
-                    )
-
-                    finished_states.extend(finished)
-
-                except KeyboardInterrupt:
-                    print("Interrupted")
-                    break
-
-                if self.ListenerSleeptime > 0:
-                    time.sleep(self.ListenerSleeptime)
-
-            # sort and return the results
-            if self.DEBUG:
-                print("Fetching Results...")
-            finished_states = {object_references[ref]: ref for ref in finished_states}
-
-            return True, finished_states
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return False, None
-
-    def __verbose_listener__(
-        self, object_references: Dict[ray.ObjectRef, int]
-    ) -> Tuple[bool, Dict[int, Any]]:
-        """Listenes to and reports on the ray progress and system CPU and Memory. Retrieves results of successful tasks.
-
-        Args:
-            object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
-
-        Returns:
-            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
-        """
-        try:
-            if self.DEBUG:
-                print("Setting up progress monitors...")
-
-            ## create progress monitors
-            core_progress = tqdm(
-                total=len(object_references), desc="Workers", position=1
-            )
-            cpu_progress = tqdm(
-                total=100,
-                desc="CPU usage",
-                bar_format="{desc}: {percentage:3.0f}%|{bar}|",
-                position=2,
-            )
-            mem_progress = tqdm(
-                total=psutil.virtual_memory().total,
-                desc="RAM usage",
-                bar_format="{desc}: {percentage:3.0f}%|{bar}|",
-                position=3,
-            )
-
-            # setup collection list
-            pending_states: list = list(object_references.keys())
-            finished_states: list = []
-
-            if self.DEBUG:
-                print("Listening to Ray Progress...")
-            ## listen for progress
-            while len(pending_states) > 0:
-                try:
-                    # get the ready refs
-                    finished, pending_states = ray.wait(
-                        pending_states,
-                        num_returns=len(pending_states),
-                        timeout=1e-3,
-                        fetch_local=False,
-                    )
-
-                    finished_states.extend(finished)
-
-                    # update the progress bars
-                    mem_progress.n = psutil.virtual_memory().used
-                    mem_progress.refresh()
-
-                    cpu_progress.n = psutil.cpu_percent()
-                    cpu_progress.refresh()
-
-                    # update the progress bar
-                    core_progress.n = len(finished_states)
-                    core_progress.refresh()
-
-                    # sleep for a bit
-                    if self.ListenerSleeptime > 0:
-                        time.sleep(self.ListenerSleeptime)
-
-                except KeyboardInterrupt:
-                    print("Interrupted")
-                    break
-
-            # set the progress bars to success
-            core_progress.colour = "green"
-            cpu_progress.colour = "green"
-            mem_progress.colour = "green"
-
-            # set the progress bars to their final values
-            core_progress.n = len(object_references)
-            cpu_progress.n = 0
-            mem_progress.n = 0
-
-            # close the progress bars
-            core_progress.close()
-            cpu_progress.close()
-            mem_progress.close()
-
-            # sort and return the results
-            if self.DEBUG:
-                print("Fetching Results...")
-            finished_states = {object_references[ref]: ref for ref in finished_states}
-
-            if self.DEBUG:
-                print("Ray Progress Complete...")
-
-            return True, finished_states
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return False, None
 
     ##### API #####
     # %% Main Execution
