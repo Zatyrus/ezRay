@@ -86,7 +86,9 @@ class MultiCoreExecutionTool:
         ## set the debug flag
         if "DEBUG" in kwargs.keys():
             self.DEBUG = kwargs["DEBUG"]
-            self.silent = False
+            if self.DEBUG:
+                print("Debug mode is enabled. Using verbose mode.")
+                self.silent = False
 
         if "SingleShot" in kwargs.keys():
             self.SingleShot = kwargs["SingleShot"]
