@@ -33,8 +33,10 @@ class Listener:
         """
         self.DEBUG = DEBUG
         self.ListenerSleeptime = ListenerSleeptime
-        
-    def compose_listener(self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True) -> Tuple[bool, Dict[int, Any]]:
+
+    def compose_listener(
+        self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True
+    ) -> Tuple[bool, Dict[int, Any]]:
         """Listenes to and reports on the ray progress and system CPU and Memory. Retrieves results of successful tasks.
 
         Args:
@@ -50,19 +52,20 @@ class Listener:
 
             ## create progress monitors
             core_progress = tqdm(
-                disable = not verbose, 
-                total=len(object_references), 
-                desc="Workers", position=1
+                disable=not verbose,
+                total=len(object_references),
+                desc="Workers",
+                position=1,
             )
             cpu_progress = tqdm(
-                disable = not verbose,
+                disable=not verbose,
                 total=100,
                 desc="CPU usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=2,
             )
             mem_progress = tqdm(
-                disable = not verbose,
+                disable=not verbose,
                 total=psutil.virtual_memory().total,
                 desc="RAM usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
@@ -135,11 +138,10 @@ class Listener:
         except Exception as e:
             print(f"Error: {e}")
             return False, None
-        
-        
+
     def silent(
         self, object_references: Dict[ray.ObjectRef, int]
-        ) -> Tuple[bool, Dict[int, Any]]:
+    ) -> Tuple[bool, Dict[int, Any]]:
         """Silently listenes to the ray progress and retrieves the results.
 
         Args:
@@ -150,7 +152,7 @@ class Listener:
         """
         ## SILENT MODE
         return self.compose_listener(object_references, verbose=False)
-    
+
     def verbose(
         self, object_references: Dict[ray.ObjectRef, int]
     ) -> Tuple[bool, Dict[int, Any]]:

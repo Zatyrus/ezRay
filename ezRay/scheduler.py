@@ -1,6 +1,5 @@
 ## Dependencies:
-from copy import deepcopy
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, NoReturn, Optional
 
 import ray
 
@@ -19,24 +18,26 @@ try:
         from tqdm import tqdm
 except Exception as _:
     from tqdm import tqdm
-    
+
+
 class Scheduler:
     """Scheduler class that handles the scheduling of remote tasks."""
-    def __init__(self, DEBUG: bool = False)->NoReturn:
+
+    def __init__(self, DEBUG: bool = False) -> NoReturn:
         """Initialize the Scheduler
 
         Args:
             DEBUG (bool, optional): Debug flag; Changes verbostiy. Defaults to False.
         """
         self.DEBUG = DEBUG
-        
+
     def compose_scheduler(
         self,
         worker: ray.remote_function.RemoteFunction,
         data_ref: Dict[int, ray.ObjectRef],
         schedule: List[Any],
         coreLogic: Optional[Callable] = None,
-        verbose: bool = True
+        verbose: bool = True,
     ) -> Dict[ray.ObjectRef, int]:
         """Verbose scheduler that handles remote task execution.
 
@@ -52,11 +53,13 @@ class Scheduler:
         # if coreLogic is provided, pass it to the wrapper
         if coreLogic is not None:
             return {
-                worker.remote(
-                    coreLogic, data_ref[schedule_index]
-                ): schedule_index
+                worker.remote(coreLogic, data_ref[schedule_index]): schedule_index
                 for schedule_index in tqdm(
-                    schedule, disable = not verbose, total=len(schedule), desc="Scheduling Workers", position=0
+                    schedule,
+                    disable=not verbose,
+                    total=len(schedule),
+                    desc="Scheduling Workers",
+                    position=0,
                 )
             }
 
@@ -64,10 +67,14 @@ class Scheduler:
         return {
             worker.remote(data_ref[schedule_index]): schedule_index
             for schedule_index in tqdm(
-                schedule, disable = not verbose, total=len(schedule), desc="Scheduling Workers", position=0
+                schedule,
+                disable=not verbose,
+                total=len(schedule),
+                desc="Scheduling Workers",
+                position=0,
             )
         }
-    
+
     def verbose(
         self,
         worker: ray.remote_function.RemoteFunction,
@@ -87,7 +94,7 @@ class Scheduler:
         """
         ## VERBOSE MODE
         return self.compose_scheduler(
-            worker, data_ref, schedule, coreLogic, verbose = True
+            worker, data_ref, schedule, coreLogic, verbose=True
         )
 
     def silent(
@@ -109,5 +116,5 @@ class Scheduler:
         """
         ## SILENT MODE
         return self.compose_scheduler(
-            worker, data_ref, schedule, coreLogic, verbose = False
+            worker, data_ref, schedule, coreLogic, verbose=False
         )
