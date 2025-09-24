@@ -953,7 +953,7 @@ class MultiCoreExecutionTool:
         """
         if self.DEBUG:
             print("Fetching All Results...")
-        return deepcopy(self.RuntimeResults), deepcopy(self.RuntimeArchive)
+        return self.get_results(), self.get_archive()
 
     def archive_results(self) -> bool:
         """Move the RuntimeResults to the RuntimeArchive.
