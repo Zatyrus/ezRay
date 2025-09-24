@@ -251,9 +251,7 @@ class MultiCoreExecutionTool:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=Listener(
-                    DEBUG=self.DEBUG
-                ).silent,
+                listener=Listener(DEBUG=self.DEBUG).silent,
                 scheduler=Scheduler(DEBUG=self.DEBUG).silent,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
@@ -261,9 +259,7 @@ class MultiCoreExecutionTool:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=Listener(
-                    DEBUG=self.DEBUG
-                ).verbose,
+                listener=Listener(DEBUG=self.DEBUG).verbose,
                 scheduler=Scheduler(DEBUG=self.DEBUG).verbose,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
