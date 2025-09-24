@@ -60,6 +60,7 @@ class Scheduler:
                     total=len(schedule),
                     desc="Scheduling Workers",
                     position=0,
+                    miniters=1
                 )
             }
 
@@ -72,6 +73,7 @@ class Scheduler:
                 total=len(schedule),
                 desc="Scheduling Workers",
                 position=0,
+                miniters=1
             )
         }
 
