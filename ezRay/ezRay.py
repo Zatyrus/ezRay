@@ -141,12 +141,6 @@ class MultiCoreExecutionTool:
             data = json.load(file)
         return cls(**data)
 
-    # %% DEBUG & DEMO
-    @ray.remote(num_cpus=1, num_returns=1)
-    def test_function(kwargs) -> Dict[Any, Any]:
-        """Test function for the framework that merely forwards the input."""
-        return {k: v for k, v in kwargs.items()}
-
     # %% Ray Wrapper
     def __setup_wrapper__(self) -> Callable:
         @ray.remote(**self.RuntimeMetadata["task_metadata"])
