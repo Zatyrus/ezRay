@@ -69,9 +69,9 @@ class MultiCoreExecutionTool:
         ## Initialize attributes
         self.DashboardURL = None
         self.RuntimeContext = None
-        self.RuntimeMetadata = None
-        self.RuntimeResults = None
-        self.RuntimeArchive = None
+        self.RuntimeMetadata = {}
+        self.RuntimeResults = {}
+        self.RuntimeArchive = {}
 
         ## Set Behavior
         self.SingleShot = False
@@ -947,7 +947,7 @@ class MultiCoreExecutionTool:
         """
         if self.DEBUG:
             print("Fetching All Results...")
-        return deepcopy(self.RuntimeResults), deepcopy(self.RuntimeArchive)
+        return self.get_results(), self.get_archive()
 
     def archive_results(self) -> bool:
         """Move the RuntimeResults to the RuntimeArchive.
