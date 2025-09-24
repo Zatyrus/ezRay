@@ -532,7 +532,7 @@ class MultiCoreExecutionTool:
         ray.shutdown()
 
         # ray init
-        cluster_context = ray.init(**self.RuntimeMetadata["instance_metadata"])
+        RuntimeContext = ray.init(**self.RuntimeMetadata["instance_metadata"])
         self.DashboardURL = f"http://{cluster_context.dashboard_url}/"
 
         # dashboard
@@ -544,7 +544,7 @@ class MultiCoreExecutionTool:
             print(f"Ray Dashboard: {self.DashboardURL}")
 
         # set the runtime context
-        self.runimte_context = cluster_context
+        self.RuntimeContext = RuntimeContext
 
         return True
 
