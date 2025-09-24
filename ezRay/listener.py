@@ -5,10 +5,6 @@ from typing import Any, Dict, Tuple
 import psutil
 import ray
 
-# typing
-import ray.remote_function
-import ray.runtime_context
-
 # context aware progress bar
 # detect jupyter notebook
 from IPython import get_ipython
@@ -24,15 +20,15 @@ except Exception as _:
 
 
 class Listener:
-    def __init__(self, DEBUG: bool = False, ListenerSleeptime: float = 0.1):
+    def __init__(self, DEBUG: bool = False, ListenerDelayTime: float = 0.1):
         """Initializes the Listener class.
 
         Args:
             DEBUG (bool, optional): Flag to enable debugging. Defaults to False.
-            ListenerSleeptime (float, optional): Time to sleep between progress checks. Defaults to 0.1.
+            ListenerDelayTime (float, optional): Time to sleep between progress checks. Defaults to 0.1.
         """
         self.DEBUG = DEBUG
-        self.ListenerSleeptime = ListenerSleeptime
+        self.ListenerDelayTime = ListenerDelayTime
 
     def compose_listener(
         self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True
@@ -56,6 +52,7 @@ class Listener:
                 total=len(object_references),
                 desc="Workers",
                 position=1,
+                miniters=0
             )
             cpu_progress = tqdm(
                 disable=not verbose,
@@ -63,6 +60,7 @@ class Listener:
                 desc="CPU usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=2,
+                mininterval=self.ListenerDelayTime
             )
             mem_progress = tqdm(
                 disable=not verbose,
@@ -70,6 +68,8 @@ class Listener:
                 desc="RAM usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=3,
+                miniters=0,
+                mininterval=self.ListenerDelayTime
             )
 
             # setup collection list
@@ -101,10 +101,6 @@ class Listener:
                     # update the progress bar
                     core_progress.n = len(finished_states)
                     core_progress.refresh()
-
-                    # sleep for a bit
-                    if self.ListenerSleeptime > 0:
-                        time.sleep(self.ListenerSleeptime)
 
                 except KeyboardInterrupt:
                     print("Interrupted")

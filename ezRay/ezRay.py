@@ -40,7 +40,7 @@ class MultiCoreExecutionTool:
     RuntimeArchive: Dict[str, Dict[Any, Dict[str, Any]]]
     DashboardURL: str
 
-    ListenerSleeptime: float
+    ListenerDelayTime: float
     AutoLaunchDashboard: bool
     silent: bool
     DEBUG: bool
@@ -61,7 +61,7 @@ class MultiCoreExecutionTool:
             MultiCoreExecutionTool: MultiCoreExecutionTool object.
         """
         ## Default Verbosity
-        self.ListenerSleeptime = 0.1
+        self.ListenerDelayTime = 0.1
         self.AutoLaunchDashboard = False
         self.silent = False
         self.DEBUG = False
@@ -260,7 +260,7 @@ class MultiCoreExecutionTool:
                 worker=worker,
                 schedule=schedule,
                 listener=Listener(
-                    DEBUG=self.DEBUG, ListenerSleeptime=self.ListenerSleeptime
+                    DEBUG=self.DEBUG, ListenerDelayTime=self.ListenerDelayTime
                 ).silent,
                 scheduler=Scheduler(DEBUG=self.DEBUG).silent,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
@@ -270,7 +270,7 @@ class MultiCoreExecutionTool:
                 worker=worker,
                 schedule=schedule,
                 listener=Listener(
-                    DEBUG=self.DEBUG, ListenerSleeptime=self.ListenerSleeptime
+                    DEBUG=self.DEBUG, ListenerDelayTime=self.ListenerDelayTime
                 ).verbose,
                 scheduler=Scheduler(DEBUG=self.DEBUG).verbose,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
