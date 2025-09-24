@@ -14,7 +14,7 @@ import ray.runtime_context
 
 # context aware progress bar
 # detect jupyter notebook
-from IPython import get_ipython
+from IPython.core.getipython import get_ipython
 
 try:
     ipy_str = str(type(get_ipython()))
@@ -50,7 +50,7 @@ class MultiCoreExecutionTool:
     AutoArchive: bool
 
     def __init__(
-        self, RuntimeData: Dict[Any, Dict[Any, Any]] = None, /, **kwargs
+        self, RuntimeData: Dict[Any, Dict[Any, Any]] = {}, /, **kwargs
     ) -> NoReturn:
         """Constructor for the MultiCoreExecutionTool class.
 
