@@ -20,15 +20,13 @@ except Exception as _:
 
 
 class Listener:
-    def __init__(self, DEBUG: bool = False, ListenerDelayTime: float = 0.1):
+    def __init__(self, DEBUG: bool = False):
         """Initializes the Listener class.
 
         Args:
             DEBUG (bool, optional): Flag to enable debugging. Defaults to False.
-            ListenerDelayTime (float, optional): Time to sleep between progress checks. Defaults to 0.1.
         """
         self.DEBUG = DEBUG
-        self.ListenerDelayTime = ListenerDelayTime
 
     def compose_listener(
         self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True
@@ -52,7 +50,7 @@ class Listener:
                 total=len(object_references),
                 desc="Workers",
                 position=1,
-                miniters=0
+                miniters=1,
             )
             cpu_progress = tqdm(
                 disable=not verbose,
@@ -60,7 +58,6 @@ class Listener:
                 desc="CPU usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=2,
-                mininterval=self.ListenerDelayTime
             )
             mem_progress = tqdm(
                 disable=not verbose,
@@ -68,8 +65,7 @@ class Listener:
                 desc="RAM usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=3,
-                miniters=0,
-                mininterval=self.ListenerDelayTime
+                miniters=1,
             )
 
             # setup collection list
