@@ -69,9 +69,9 @@ class MultiCoreExecutionTool:
         ## Initialize attributes
         self.DashboardURL = None
         self.RuntimeContext = None
-        self.RuntimeMetadata = None
-        self.RuntimeResults = None
-        self.RuntimeArchive = None
+        self.RuntimeMetadata = {}
+        self.RuntimeResults = {}
+        self.RuntimeArchive = {}
 
         ## Set Behavior
         self.SingleShot = False
