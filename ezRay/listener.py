@@ -1,5 +1,4 @@
 ## Dependencies:
-import time
 from typing import Any, Dict, Tuple
 
 import psutil
