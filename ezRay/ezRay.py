@@ -86,7 +86,9 @@ class MultiCoreExecutionTool:
         ## set the debug flag
         if "DEBUG" in kwargs.keys():
             self.DEBUG = kwargs["DEBUG"]
-            self.silent = False
+            if self.DEBUG:
+                print("Debug mode is enabled. Using verbose mode.")
+                self.silent = False
 
         if "SingleShot" in kwargs.keys():
             self.SingleShot = kwargs["SingleShot"]
@@ -94,7 +96,9 @@ class MultiCoreExecutionTool:
             if self.SingleShot:
                 self.AutoArchive = False
                 self.AutoContinue = True
-                print("SingleShot mode is enabled. Archive disabled. AutoContinue enabled.")
+                print(
+                    "SingleShot mode is enabled. Archive disabled. AutoContinue enabled."
+                )
 
         self.__post_init__(RuntimeData, **kwargs)
 
@@ -255,16 +259,20 @@ class MultiCoreExecutionTool:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=Listener(DEBUG = self.DEBUG, ListenerSleeptime = self.ListenerSleeptime).silent,
-                scheduler=Scheduler(DEBUG = self.DEBUG).silent,
+                listener=Listener(
+                    DEBUG=self.DEBUG, ListenerSleeptime=self.ListenerSleeptime
+                ).silent,
+                scheduler=Scheduler(DEBUG=self.DEBUG).silent,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
         else:
             permision, states = self.__multicore_workflow__(
                 worker=worker,
                 schedule=schedule,
-                listener=Listener(DEBUG = self.DEBUG, ListenerSleeptime = self.ListenerSleeptime).verbose,
-                scheduler=Scheduler(DEBUG = self.DEBUG).verbose,
+                listener=Listener(
+                    DEBUG=self.DEBUG, ListenerSleeptime=self.ListenerSleeptime
+                ).verbose,
+                scheduler=Scheduler(DEBUG=self.DEBUG).verbose,
                 coreLogic=coreLogic if "coreLogic" in locals() else None,
             )
 
@@ -300,7 +308,9 @@ class MultiCoreExecutionTool:
             Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
         """
         ## workflow and listening
-        permission, finished_states = listener(scheduler(worker, self.RuntimeData_ref, schedule, coreLogic))
+        permission, finished_states = listener(
+            scheduler(worker, self.RuntimeData_ref, schedule, coreLogic)
+        )
 
         ## check completion
         if permission:

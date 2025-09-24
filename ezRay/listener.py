@@ -34,63 +34,14 @@ class Listener:
         self.DEBUG = DEBUG
         self.ListenerSleeptime = ListenerSleeptime
 
-    def silent(
-        self, object_references: Dict[ray.ObjectRef, int]
-        ) -> Tuple[bool, Dict[int, Any]]:
-        """Silently listenes to the ray progress and retrieves the results.
-
-        Args:
-            object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
-
-        Returns:
-            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
-        """
-
-        try:
-            # setup collection list
-            pending_states: list = list(object_references.keys())
-            finished_states: list = []
-
-            if self.DEBUG:
-                print("Listening to Ray Progress...")
-
-            while len(pending_states) > 0:
-                try:
-                    # get the ready refs
-                    finished, pending_states = ray.wait(
-                        pending_states,
-                        num_returns=len(pending_states),
-                        timeout=1e-3,
-                        fetch_local=False,
-                    )
-
-                    finished_states.extend(finished)
-
-                except KeyboardInterrupt:
-                    print("Interrupted")
-                    break
-
-                if self.ListenerSleeptime > 0:
-                    time.sleep(self.ListenerSleeptime)
-
-            # sort and return the results
-            if self.DEBUG:
-                print("Fetching Results...")
-            finished_states = {object_references[ref]: ref for ref in finished_states}
-
-            return True, finished_states
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return False, None
-
-    def verbose(
-        self, object_references: Dict[ray.ObjectRef, int]
+    def compose_listener(
+        self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True
     ) -> Tuple[bool, Dict[int, Any]]:
         """Listenes to and reports on the ray progress and system CPU and Memory. Retrieves results of successful tasks.
 
         Args:
             object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
+            verbose (bool, optional): Flag to enable verbose output. Defaults to True.
 
         Returns:
             Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
@@ -101,15 +52,20 @@ class Listener:
 
             ## create progress monitors
             core_progress = tqdm(
-                total=len(object_references), desc="Workers", position=1
+                disable=not verbose,
+                total=len(object_references),
+                desc="Workers",
+                position=1,
             )
             cpu_progress = tqdm(
+                disable=not verbose,
                 total=100,
                 desc="CPU usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=2,
             )
             mem_progress = tqdm(
+                disable=not verbose,
                 total=psutil.virtual_memory().total,
                 desc="RAM usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
@@ -182,3 +138,31 @@ class Listener:
         except Exception as e:
             print(f"Error: {e}")
             return False, None
+
+    def silent(
+        self, object_references: Dict[ray.ObjectRef, int]
+    ) -> Tuple[bool, Dict[int, Any]]:
+        """Silently listenes to the ray progress and retrieves the results.
+
+        Args:
+            object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
+
+        Returns:
+            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
+        """
+        ## SILENT MODE
+        return self.compose_listener(object_references, verbose=False)
+
+    def verbose(
+        self, object_references: Dict[ray.ObjectRef, int]
+    ) -> Tuple[bool, Dict[int, Any]]:
+        """Listenes to and reports on the ray progress and system CPU and Memory. Retrieves results of successful tasks.
+
+        Args:
+            object_references (Dict[ray.ObjectRef,int]): Dictionary containing the object references and their corresponding keys for keeping track of the progress and upholding the order of input data provided.
+
+        Returns:
+            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
+        """
+        ## VERBOSE MODE
+        return self.compose_listener(object_references, verbose=True)
