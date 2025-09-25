@@ -650,6 +650,14 @@ class MultiCoreExecutionTool:
                 "ignore_reinit_error": True,
             },
             "task_metadata": {"num_cpus": 1, "num_gpus": 0, "num_returns": None},
+            "AutoLaunchDashboard": self._AutoLaunchDashboard,
+            "silent": self._silent,
+            "DEBUG": self._DEBUG,
+            "SingleShot": self._SingleShot,
+            "AutoContinue": self._AutoContinue,
+            "AutoArchive": self._AutoArchive,
+            "DashboardURL": None,
+            "NodeMetadata": None,
         }
         # update metadata with given values
         self._RuntimeMetadata.update(kwargs)
