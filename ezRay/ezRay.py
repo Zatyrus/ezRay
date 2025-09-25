@@ -5,6 +5,7 @@ import datetime
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
+from pprint import pprint
 import psutil
 import ray
 
@@ -646,7 +647,6 @@ class MultiCoreExecutionTool:
             "instance_metadata": {
                 "num_cpus": 1,
                 "num_gpus": 0,
-                "address": None,
                 "ignore_reinit_error": True,
             },
             "task_metadata": {"num_cpus": 1, "num_gpus": 0, "num_returns": None},
@@ -877,6 +877,14 @@ class MultiCoreExecutionTool:
             self._RuntimeResults = self.__setup_RuntimeResults__()
 
     # %% Helper
+    def show_metadata(self) -> NoReturn:
+        """Print the RuntimeMetadata in a pretty format.
+
+        Returns:
+            NoReturn: No Return
+        """
+        pprint(self._RuntimeMetadata)
+        
     def __update_RuntimeMetadata__(self, **kwargs) -> NoReturn:
         """Update the RuntimeMetadata with the provided keyword arguments.
 
