@@ -287,16 +287,6 @@ class MultiCoreExecutionTool:
                 print("Debug mode is enabled. Using verbose mode.")
                 self._silent = False
 
-        if "SingleShot" in kwargs.keys():
-            self._SingleShot = kwargs["SingleShot"]
-
-            if self._SingleShot:
-                self._AutoArchive = False
-                self._AutoContinue = True
-                print(
-                    "SingleShot mode is enabled. Archive disabled. AutoContinue enabled."
-                )
-
         self.__post_init__(RuntimeData, **kwargs)
 
     def __post_init__(
