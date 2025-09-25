@@ -5,6 +5,7 @@ import datetime
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
+from pprint import pprint
 import psutil
 import ray
 
@@ -286,16 +287,6 @@ class MultiCoreExecutionTool:
             if self._DEBUG:
                 print("Debug mode is enabled. Using verbose mode.")
                 self._silent = False
-
-        if "SingleShot" in kwargs.keys():
-            self._SingleShot = kwargs["SingleShot"]
-
-            if self._SingleShot:
-                self._AutoArchive = False
-                self._AutoContinue = True
-                print(
-                    "SingleShot mode is enabled. Archive disabled. AutoContinue enabled."
-                )
 
         self.__post_init__(RuntimeData, **kwargs)
 
@@ -656,10 +647,17 @@ class MultiCoreExecutionTool:
             "instance_metadata": {
                 "num_cpus": 1,
                 "num_gpus": 0,
-                "address": None,
                 "ignore_reinit_error": True,
             },
             "task_metadata": {"num_cpus": 1, "num_gpus": 0, "num_returns": None},
+            "AutoLaunchDashboard": self._AutoLaunchDashboard,
+            "silent": self._silent,
+            "DEBUG": self._DEBUG,
+            "SingleShot": self._SingleShot,
+            "AutoContinue": self._AutoContinue,
+            "AutoArchive": self._AutoArchive,
+            "DashboardURL": None,
+            "NodeMetadata": None,
         }
         # update metadata with given values
         self._RuntimeMetadata.update(kwargs)
@@ -879,6 +877,14 @@ class MultiCoreExecutionTool:
             self._RuntimeResults = self.__setup_RuntimeResults__()
 
     # %% Helper
+    def show_metadata(self) -> NoReturn:
+        """Print the RuntimeMetadata in a pretty format.
+
+        Returns:
+            NoReturn: No Return
+        """
+        pprint(self._RuntimeMetadata)
+        
     def __update_RuntimeMetadata__(self, **kwargs) -> NoReturn:
         """Update the RuntimeMetadata with the provided keyword arguments.
 
