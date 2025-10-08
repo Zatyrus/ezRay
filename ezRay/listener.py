@@ -57,6 +57,7 @@ class Listener:
                 desc="CPU usage",
                 bar_format="{desc}: {percentage:3.0f}%|{bar}|",
                 position=2,
+                miniters=1,
             )
             mem_progress = tqdm(
                 disable=not verbose,
