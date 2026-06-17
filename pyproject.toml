@@ -12,6 +12,7 @@ psutil = "^6.1.1"
 ray = {extras = ["default"], version = "^2.42.1"}
 ipython = "^8.32.0"
 tqdm = "^4.67.1"
+propcache = "^0.5.2"
 
 
 [build-system]
