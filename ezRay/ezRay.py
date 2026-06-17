@@ -724,8 +724,8 @@ class MultiCoreExecutionTool:
         self._DashboardURL = f"http://{RuntimeContext.dashboard_url}/"
         self._NodeMetadata = RuntimeContext.address_info  # type: ignore
         self.__update_RuntimeMetadata__(
-            NodeMetadata=RuntimeContext.address_info,
-            DashboardURL=self._DashboardURL,  # type: ignore
+            NodeMetadata=RuntimeContext.address_info, # type: ignore
+            DashboardURL=self._DashboardURL,  
         )
 
         # dashboard
