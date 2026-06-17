@@ -29,7 +29,18 @@ class Scheduler:
         Args:
             DEBUG (bool, optional): Debug flag; Changes verbostiy. Defaults to False.
         """
-        self.DEBUG = DEBUG
+        self._DEBUG = DEBUG
+        
+    ## DEBUG Property and Setter
+    # currently a placeholder
+    @property
+    def DEBUG(self) -> bool:
+        return self._DEBUG
+    @DEBUG.setter
+    def DEBUG(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError("DEBUG must be a boolean value.")
+        self._DEBUG = value
 
     def compose_scheduler(
         self,

@@ -65,6 +65,19 @@ class MultiCoreExecutionTool:
     @RuntimeData.deleter
     def RuntimeData(self) -> None:
         del self._RuntimeData
+        
+    # RuntimeData Reference
+    @property
+    def RuntimeData_ref(self) -> Dict[Any, ray.ObjectRef]:
+        return self._RuntimeData_ref
+    
+    @RuntimeData_ref.setter
+    def RuntimeData_ref(self, value: Dict[Any, ray.ObjectRef]) -> None:
+        self._RuntimeData_ref = value
+        
+    @RuntimeData_ref.deleter
+    def RuntimeData_ref(self) -> None:
+        del self._RuntimeData_ref
 
     ## Runtime Results
     @property
@@ -489,7 +502,7 @@ class MultiCoreExecutionTool:
         """
         ## workflow and listening
         permission, finished_states = listener(
-            scheduler(worker, self.RuntimeData_ref, schedule, coreLogic)
+            scheduler(worker, self._RuntimeData_ref, schedule, coreLogic)
         )
 
         ## check completion
@@ -878,8 +891,8 @@ class MultiCoreExecutionTool:
         if self._DEBUG:
             print("Updating Runtime Data...")
 
-        self.RuntimeData = RuntimeData
-        self.RuntimeData_ref = self.__offload_data__()
+        self._RuntimeData = RuntimeData
+        self._RuntimeData_ref = self.__offload_data__()
 
         if (
             self._RuntimeResults is not None
@@ -1088,8 +1101,8 @@ class MultiCoreExecutionTool:
         if self._DEBUG:
             print("Checking if RunIDs are in RuntimeData...")
         if isinstance(RunIDs, int):
-            return RunIDs <= len(self.RuntimeData)
-        return all([k in self.RuntimeData.keys() for k in RunIDs])
+            return RunIDs < len(self._RuntimeData)
+        return all([k in self._RuntimeData.keys() for k in RunIDs])
 
     def retreive_data(self) -> bool:
         """Retreive the RuntimeData.

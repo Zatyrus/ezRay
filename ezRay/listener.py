@@ -25,7 +25,18 @@ class Listener:
         Args:
             DEBUG (bool, optional): Flag to enable debugging. Defaults to False.
         """
-        self.DEBUG = DEBUG
+        self._DEBUG = DEBUG
+        
+    ## DEBUG Property and Setter
+    # currently a placeholder
+    @property
+    def DEBUG(self) -> bool:
+        return self._DEBUG
+    @DEBUG.setter
+    def DEBUG(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError("DEBUG must be a boolean value.")
+        self._DEBUG = value
 
     def compose_listener(
         self, object_references: Dict[ray.ObjectRef, int], verbose: bool = True
@@ -40,7 +51,7 @@ class Listener:
             Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
         """
         try:
-            if self.DEBUG:
+            if self._DEBUG:
                 print("Setting up progress monitors...")
 
             ## create progress monitors
@@ -72,7 +83,7 @@ class Listener:
             pending_states: list = list(object_references.keys())
             finished_states: list = []
 
-            if self.DEBUG:
+            if self._DEBUG:
                 print("Listening to Ray Progress...")
             ## listen for progress
             while len(pending_states) > 0:
@@ -118,11 +129,11 @@ class Listener:
             mem_progress.close()
 
             # sort and return the results
-            if self.DEBUG:
+            if self._DEBUG:
                 print("Fetching Results...")
             finished_states = {object_references[ref]: ref for ref in finished_states}
 
-            if self.DEBUG:
+            if self._DEBUG:
                 print("Ray Progress Complete...")
 
             return True, finished_states
