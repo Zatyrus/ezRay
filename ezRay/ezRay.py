@@ -3,7 +3,7 @@ import json
 import webbrowser
 import datetime
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union, Optional
 
 from pprint import pprint
 import psutil
@@ -33,21 +33,23 @@ from .listener import Listener
 
 # %% Multi Core Execution Main
 class MultiCoreExecutionTool:
-    RuntimeData: Dict[Any, Dict[Any, Any]]
+    _RuntimeData: Dict[Any, Dict[Any, Any]]
+    _RuntimeResults: Dict[Any, Dict[str, Any]]
+    _RuntimeArchive: Dict[str, Dict[Any, Dict[str, Any]]]
+    _RuntimeData_ref: Dict[Any, ray.ObjectRef]
 
-    RuntimeResults: Dict[Any, Dict[str, Any]]
-    RuntimeContext: ray.runtime_context.RuntimeContext
-    RuntimeMetadata: Dict[str, Union[str, bool, int, float]]
-    RuntimeArchive: Dict[str, Dict[Any, Dict[str, Any]]]
-    DashboardURL: str
+    _RuntimeMetadata: Dict[str, Any]
 
-    AutoLaunchDashboard: bool
-    silent: bool
-    DEBUG: bool
+    _RuntimeContext: Optional[Union[ray.runtime_context.RuntimeContext, Any]]
+    _DashboardURL: Optional[str]
 
-    SingleShot: bool
-    AutoContinue: bool
-    AutoArchive: bool
+    _AutoLaunchDashboard: bool
+    _silent: bool
+    _DEBUG: bool
+
+    _SingleShot: bool
+    _AutoContinue: bool
+    _AutoArchive: bool
 
     # %% Properties
 
@@ -57,11 +59,11 @@ class MultiCoreExecutionTool:
         return self._RuntimeData
 
     @RuntimeData.setter
-    def RuntimeData(self, value: Dict[Any, Dict[Any, Any]]) -> NoReturn:
+    def RuntimeData(self, value: Dict[Any, Dict[Any, Any]]) -> None:
         self._RuntimeData = value
 
     @RuntimeData.deleter
-    def RuntimeData(self) -> NoReturn:
+    def RuntimeData(self) -> None:
         del self._RuntimeData
 
     ## Runtime Results
@@ -70,41 +72,41 @@ class MultiCoreExecutionTool:
         return self._RuntimeResults
 
     @RuntimeResults.setter
-    def RuntimeResults(self, value: Dict[Any, Dict[str, Any]]) -> NoReturn:
+    def RuntimeResults(self, value: Dict[Any, Dict[str, Any]]) -> None:
         raise ValueError(
             "RuntimeResults is read-only. Use update_data() to reset the results."
         )
 
     @RuntimeResults.deleter
-    def RuntimeResults(self) -> NoReturn:
+    def RuntimeResults(self) -> None:
         del self._RuntimeResults
 
     ## Runtime Context
     @property
-    def RuntimeContext(self) -> ray.runtime_context.RuntimeContext:
+    def RuntimeContext(self) -> Optional[ray.runtime_context.RuntimeContext]:
         return self._RuntimeContext
 
     @RuntimeContext.setter
-    def RuntimeContext(self, value: ray.runtime_context.RuntimeContext) -> NoReturn:
+    def RuntimeContext(
+        self, value: Optional[ray.runtime_context.RuntimeContext]
+    ) -> None:
         self._RuntimeContext = value
 
     @RuntimeContext.deleter
-    def RuntimeContext(self) -> NoReturn:
+    def RuntimeContext(self) -> None:
         del self._RuntimeContext
 
     ## Runtime Metadata
     @property
-    def RuntimeMetadata(self) -> Dict[str, Union[str, bool, int, float]]:
+    def RuntimeMetadata(self) -> Dict[str, Any]:
         return self._RuntimeMetadata
 
     @RuntimeMetadata.setter
-    def RuntimeMetadata(
-        self, value: Dict[str, Union[str, bool, int, float]]
-    ) -> NoReturn:
+    def RuntimeMetadata(self, value: Dict[str, Any]) -> None:
         self._RuntimeMetadata = value
 
     @RuntimeMetadata.deleter
-    def RuntimeMetadata(self) -> NoReturn:
+    def RuntimeMetadata(self) -> None:
         del self._RuntimeMetadata
 
     ## Runtime Node Metadata
@@ -113,12 +115,12 @@ class MultiCoreExecutionTool:
         return self._NodeMetadata
 
     @NodeMetadata.setter
-    def NodeMetadata(self, value: Dict[str, Any]) -> NoReturn:
+    def NodeMetadata(self, value: Dict[str, Any]) -> None:
         self._NodeMetadata = value
         self.__update_RuntimeMetadata__(NodeMetadata=value)
 
     @NodeMetadata.deleter
-    def NodeMetadata(self) -> NoReturn:
+    def NodeMetadata(self) -> None:
         del self._NodeMetadata
 
     ## Runtime Archive
@@ -127,25 +129,25 @@ class MultiCoreExecutionTool:
         return self._RuntimeArchive
 
     @RuntimeArchive.setter
-    def RuntimeArchive(self, value: Dict[str, Dict[Any, Dict[str, Any]]]) -> NoReturn:
+    def RuntimeArchive(self, value: Dict[str, Dict[Any, Dict[str, Any]]]) -> None:
         self._RuntimeArchive = value
 
     @RuntimeArchive.deleter
-    def RuntimeArchive(self) -> NoReturn:
+    def RuntimeArchive(self) -> None:
         del self._RuntimeArchive
 
     ## Dashboard URL
     @property
-    def DashboardURL(self) -> str:
+    def DashboardURL(self) -> Optional[str]:
         return self._DashboardURL
 
     @DashboardURL.setter
-    def DashboardURL(self, value: str) -> NoReturn:
+    def DashboardURL(self, value: Optional[str]) -> None:
         self._DashboardURL = value
         self.__update_RuntimeMetadata__(DashboardURL=value)
 
     @DashboardURL.deleter
-    def DashboardURL(self) -> NoReturn:
+    def DashboardURL(self) -> None:
         del self._DashboardURL
 
     ## Auto Launch Dashboard
@@ -154,12 +156,12 @@ class MultiCoreExecutionTool:
         return self._AutoLaunchDashboard
 
     @AutoLaunchDashboard.setter
-    def AutoLaunchDashboard(self, value: bool) -> NoReturn:
+    def AutoLaunchDashboard(self, value: bool) -> None:
         self._AutoLaunchDashboard = value
         self.__update_RuntimeMetadata__(AutoLaunchDashboard=value)
 
     @AutoLaunchDashboard.deleter
-    def AutoLaunchDashboard(self) -> NoReturn:
+    def AutoLaunchDashboard(self) -> None:
         del self._AutoLaunchDashboard
 
     ## Silent
@@ -168,12 +170,12 @@ class MultiCoreExecutionTool:
         return self._silent
 
     @silent.setter
-    def silent(self, value: bool) -> NoReturn:
+    def silent(self, value: bool) -> None:
         self._silent = value
         self.__update_RuntimeMetadata__(silent=value)
 
     @silent.deleter
-    def silent(self) -> NoReturn:
+    def silent(self) -> None:
         del self._silent
 
     ## Debug
@@ -182,12 +184,12 @@ class MultiCoreExecutionTool:
         return self._DEBUG
 
     @DEBUG.setter
-    def DEBUG(self, value: bool) -> NoReturn:
+    def DEBUG(self, value: bool) -> None:
         self._DEBUG = value
         self.__update_RuntimeMetadata__(DEBUG=value)
 
     @DEBUG.deleter
-    def DEBUG(self) -> NoReturn:
+    def DEBUG(self) -> None:
         del self._DEBUG
 
     ## SingleShot
@@ -196,7 +198,7 @@ class MultiCoreExecutionTool:
         return self._SingleShot
 
     @SingleShot.setter
-    def SingleShot(self, value: bool) -> NoReturn:
+    def SingleShot(self, value: bool) -> None:
         self._SingleShot = value
         self.__update_RuntimeMetadata__(SingleShot=value)
 
@@ -217,7 +219,7 @@ class MultiCoreExecutionTool:
             pass
 
     @SingleShot.deleter
-    def SingleShot(self) -> NoReturn:
+    def SingleShot(self) -> None:
         del self._SingleShot
 
     ## AutoContinue
@@ -226,12 +228,12 @@ class MultiCoreExecutionTool:
         return self._AutoContinue
 
     @AutoContinue.setter
-    def AutoContinue(self, value: bool) -> NoReturn:
+    def AutoContinue(self, value: bool) -> None:
         self._AutoContinue = value
         self.__update_RuntimeMetadata__(AutoContinue=value)
 
     @AutoContinue.deleter
-    def AutoContinue(self) -> NoReturn:
+    def AutoContinue(self) -> None:
         del self._AutoContinue
 
     ## AutoArchive
@@ -240,17 +242,17 @@ class MultiCoreExecutionTool:
         return self._AutoArchive
 
     @AutoArchive.setter
-    def AutoArchive(self, value: bool) -> NoReturn:
+    def AutoArchive(self, value: bool) -> None:
         self._AutoArchive = value
         self.__update_RuntimeMetadata__(AutoArchive=value)
 
     @AutoArchive.deleter
-    def AutoArchive(self) -> NoReturn:
+    def AutoArchive(self) -> None:
         del self._AutoArchive
 
     def __init__(
         self, RuntimeData: Dict[Any, Dict[Any, Any]] = {}, /, **kwargs
-    ) -> NoReturn:
+    ) -> None:
         """Constructor for the MultiCoreExecutionTool class.
 
         Args:
@@ -292,14 +294,14 @@ class MultiCoreExecutionTool:
 
     def __post_init__(
         self, RuntimeData: Dict[Any, Dict[Any, Any]], /, **kwargs
-    ) -> NoReturn:
+    ) -> None:
         """Post initialization method for the MultiCoreExecutionTool class. Handles routine initialization tasks.
 
         Args:
             RuntimeData (Dict[Any,Dict[Any,Any]]): Structured data to be processed by the methods.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         self.__initialize_metadata__(**kwargs)
         self.__initialize_ray_cluster__()
@@ -331,7 +333,7 @@ class MultiCoreExecutionTool:
 
     # %% Ray Wrapper
     def __setup_wrapper__(self) -> Callable:
-        @ray.remote(**self._RuntimeMetadata["task_metadata"])
+        @ray.remote(**self._RuntimeMetadata["task_metadata"])  # type: ignore
         def __method_wrapper__(
             method: Callable, input: Dict[Any, Any]
         ) -> ray.remote_function.RemoteFunction:
@@ -346,7 +348,7 @@ class MultiCoreExecutionTool:
             """
             return method(**input)
 
-        return __method_wrapper__
+        return __method_wrapper__  # type: ignore
 
     # %% Main Backend
     def __run__(
@@ -443,7 +445,7 @@ class MultiCoreExecutionTool:
                 schedule=schedule,
                 listener=Listener(DEBUG=self._DEBUG).silent,
                 scheduler=Scheduler(DEBUG=self._DEBUG).silent,
-                coreLogic=coreLogic if "coreLogic" in locals() else None,
+                coreLogic=coreLogic if "coreLogic" in locals() else None,  # type: ignore
             )
         else:
             permision, states = self.__multicore_workflow__(
@@ -451,7 +453,7 @@ class MultiCoreExecutionTool:
                 schedule=schedule,
                 listener=Listener(DEBUG=self._DEBUG).verbose,
                 scheduler=Scheduler(DEBUG=self._DEBUG).verbose,
-                coreLogic=coreLogic if "coreLogic" in locals() else None,
+                coreLogic=coreLogic if "coreLogic" in locals() else None,  # type: ignore
             )
 
         ## update the results
@@ -483,7 +485,7 @@ class MultiCoreExecutionTool:
             coreLogic (Optional[Callable]): Core logic of local function that will be forwarded to ray.
 
         Returns:
-            Tuple[bool, Dict[int,Any]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
+            Tuple[bool, Optional[Dict[int,Any]]]: Boolean flag signaling the success or the execution, Dictionary containing the results of the execution.
         """
         ## workflow and listening
         permission, finished_states = listener(
@@ -492,10 +494,12 @@ class MultiCoreExecutionTool:
 
         ## check completion
         if permission:
-            self._RuntimeResults | {
-                k: {"result": v, "status": "completed"}
-                for k, v in finished_states.items()
-            }
+            self._RuntimeResults.update(
+                {
+                    k: {"result": v, "status": "completed"}
+                    for k, v in finished_states.items()
+                }
+            )
 
             ## Shutdown Ray
             if self._DEBUG:
@@ -504,7 +508,7 @@ class MultiCoreExecutionTool:
 
             return True, finished_states
 
-        return False, None
+        return False, {}
 
     ##### API #####
     # %% Main Execution
@@ -567,12 +571,12 @@ class MultiCoreExecutionTool:
         return True
 
     # %% Runtime Control
-    def initialize(self) -> NoReturn:
+    def initialize(self) -> None:
         """Initialize the Ray cluster using the parameters found in sel.RuntimeMetadata['instance_metadata']".
            See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
-            NoReturn: No Return.
+            None: No Return.
         """
         try:
             assert self.__initialize_ray_cluster__()
@@ -580,27 +584,27 @@ class MultiCoreExecutionTool:
             print(f"Error: {e}")
             return None
 
-    def shutdown(self) -> NoReturn:
+    def shutdown(self) -> None:
         """Shutdown the Ray cluster.
 
         Returns:
-            NoReturn: No Return.
+            None: No Return.
         """
         self.__shutdown__()
 
-    def reset(self) -> NoReturn:
+    def reset(self) -> None:
         """Resets RuntimeData and RuntimeData reference. Restores RuntimeMetadata defaults.
 
         Returns:
-            NoReturn: No Return.
+            None: No Return.
         """
         self.__reset__()
 
-    def reboot(self) -> NoReturn:
+    def reboot(self) -> None:
         """Reboot the MultiCoreExecutionTool object. Can be provided with new instance parameters. See instance attributes for more information.
 
         Returns:
-            NoReturn: No Return.
+            None: No Return.
         """
         self.__reboot__()
 
@@ -613,18 +617,18 @@ class MultiCoreExecutionTool:
         return self.__launch_dashboard__()
 
     # %% Runtime Data Control
-    def update_data(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
+    def update_data(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> None:
         """Update the RuntimeData with the provided data.
 
         Args:
             RuntimeData (Dict[Any,Dict[Any,Any]]): Structured data to be processed by the methods.
 
         Returns:
-            NoReturn: No Return.
+            None: No Return.
         """
         self.__update_data__(RuntimeData)
 
-    def update_metadata(self, **kwargs) -> NoReturn:
+    def update_metadata(self, **kwargs) -> None:
         self._RuntimeMetadata.update(kwargs)
 
         ## check if the metadata is valid
@@ -636,11 +640,11 @@ class MultiCoreExecutionTool:
             print("Metadata updated.")
 
     # %% Runtime Handling Backend
-    def __initialize_metadata__(self, **kwargs) -> NoReturn:
+    def __initialize_metadata__(self, **kwargs) -> None:
         """Initializes the metadata for the MultiCoreExecutionTool class. Contains default values and will overwrite with given values.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         ## Default Metadata
         self._RuntimeMetadata = {
@@ -670,18 +674,21 @@ class MultiCoreExecutionTool:
         elif status and self._DEBUG:
             print("Metadata updated.")
 
-    def __offload_on_init__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
+    def __offload_on_init__(
+        self, RuntimeData: Optional[Dict[Any, Dict[Any, Any]]]
+    ) -> None:
         """Offload RuntimeData items to ray cluster on initialization if RuntimeData is provided.
 
         Args:
             RuntimeData (Dict[Any,Dict[Any,Any]]): Structured data to be processed by the methods.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         ## This has to be called AFTER the ray is initialized
         # otherwise, a new ray object will be created and the object references will be unreachable from within the main ray object.
 
+        # catch RuntimeData is None
         if RuntimeData is None:
             print(
                 'No Runtime Data provided. Use the "update_data()" method to update the Runtime Data prior to running methods.'
@@ -689,21 +696,17 @@ class MultiCoreExecutionTool:
             return None
 
         ## Set RuntimeData
-        self.RuntimeData = RuntimeData if RuntimeData is not None else None
-        self.RuntimeData_ref = (
-            self.__offload_data__() if RuntimeData is not None else None
-        )
-        self._RuntimeResults = (
-            self.__setup_RuntimeResults__() if RuntimeData is not None else None
-        )
-        self._RuntimeArchive = {} if RuntimeData is not None else None
+        self._RuntimeData = RuntimeData
+        self._RuntimeData_ref = self.__offload_data__()
+        self._RuntimeResults = self.__setup_RuntimeResults__()
+        self._RuntimeArchive = self.__setup_RuntimeArchive__()
 
     def __initialize_ray_cluster__(self) -> bool:
         """Initialize the Ray cluster using the parameters found in sel.RuntimeMetadata['instance_metadata']".
            See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
 
         if self.__is_initalized__():
@@ -719,9 +722,10 @@ class MultiCoreExecutionTool:
         # ray init
         RuntimeContext = ray.init(**self._RuntimeMetadata["instance_metadata"])
         self._DashboardURL = f"http://{RuntimeContext.dashboard_url}/"
-        self._NodeMetadata = RuntimeContext.address_info
+        self._NodeMetadata = RuntimeContext.address_info  # type: ignore
         self.__update_RuntimeMetadata__(
-            NodeMetadata=RuntimeContext.address_info, DashboardURL=self._DashboardURL
+            NodeMetadata=RuntimeContext.address_info,
+            DashboardURL=self._DashboardURL,  # type: ignore
         )
 
         # dashboard
@@ -752,21 +756,21 @@ class MultiCoreExecutionTool:
             print(f"Error: {e}")
             return False
 
-    def __reset__(self) -> NoReturn:
+    def __reset__(self) -> None:
         """Resets RuntimeData and RuntimeData reference. Restores RuntimeMetadata defaults.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
-        self.RuntimeData_ref = None
-        self.RuntimeData = None
+        self._RuntimeData_ref = {}
+        self._RuntimeData = {}
         self.__initialize_metadata__()
 
-    def __reboot__(self) -> NoReturn:
+    def __reboot__(self) -> None:
         """Reboots the MultiCoreExecutionTool object. Can be provided with new instance parameters. See https://docs.ray.io/en/latest/ray-core/api/doc/ray.init.html for more information.
 
         Returns:
-            NoReturn: _description_
+            None: _description_
         """
         try:
             self.__shutdown__()
@@ -789,6 +793,9 @@ class MultiCoreExecutionTool:
             return False
 
         try:
+            if self._DashboardURL is None:
+                print("Dashboard URL is not available.")
+                return False
             webbrowser.get("windows-default").open(
                 self._DashboardURL, autoraise=True, new=2
             )
@@ -813,8 +820,16 @@ class MultiCoreExecutionTool:
             Dict[int,Dict[str,Any]]: Dictionary containing the results of the execution
         """
         return {
-            k: {"result": None, "status": "pending"} for k in self.RuntimeData.keys()
+            k: {"result": None, "status": "pending"} for k in self._RuntimeData.keys()
         }
+
+    def __setup_RuntimeArchive__(self) -> Dict[str, Dict[int, Dict[str, Any]]]:
+        """Setup the RuntimeArchive dictionary.
+
+        Returns:
+            Dict[str,Dict[int,Dict[str,Any]]]: Dictionary containing the archived results of the execution.
+        """
+        return {}
 
     def __offload_data__(self) -> Dict[int, ray.ObjectRef]:
         """Offload the RuntimeData to the ray cluster.
@@ -824,13 +839,13 @@ class MultiCoreExecutionTool:
         """
         if self._DEBUG:
             print("Offloading data to Ray...")
-        return {k: ray.put(v) for k, v in self.RuntimeData.items()}
+        return {k: ray.put(v) for k, v in self._RuntimeData.items()}
 
-    def __move_results_to_archive__(self) -> NoReturn:
+    def __move_results_to_archive__(self) -> None:
         """Move the RuntimeResults to the RuntimeArchive.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         if self._DEBUG:
             print("Moving results to RuntimeArchive...")
@@ -851,14 +866,14 @@ class MultiCoreExecutionTool:
         # reset results
         self._RuntimeResults = self.__setup_RuntimeResults__()
 
-    def __update_data__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> NoReturn:
+    def __update_data__(self, RuntimeData: Dict[Any, Dict[Any, Any]]) -> None:
         """Update the RuntimeData with the provided data and offload the data to the ray cluster.
 
         Args:
             RuntimeData (Dict[int,Dict[str,Any]]): Structured data to be processed by the methods.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         if self._DEBUG:
             print("Updating Runtime Data...")
@@ -877,22 +892,22 @@ class MultiCoreExecutionTool:
             self._RuntimeResults = self.__setup_RuntimeResults__()
 
     # %% Helper
-    def show_metadata(self) -> NoReturn:
+    def show_metadata(self) -> None:
         """Print the RuntimeMetadata in a pretty format.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         pprint(self._RuntimeMetadata)
 
-    def __update_RuntimeMetadata__(self, **kwargs) -> NoReturn:
+    def __update_RuntimeMetadata__(self, **kwargs) -> None:
         """Update the RuntimeMetadata with the provided keyword arguments.
 
         Args:
             **kwargs: Keyword arguments to update the RuntimeMetadata.
 
         Returns:
-            NoReturn: No Return
+            None: No Return
         """
         self._RuntimeMetadata.update(kwargs)
 
@@ -1061,11 +1076,11 @@ class MultiCoreExecutionTool:
             [v["status"] == "retrieved" for k, v in self._RuntimeResults.items()]
         )
 
-    def __RunIDs_in_RuntimeData__(self, RunIDs: Union[int, List[Any]]) -> bool:
+    def __RunIDs_in_RuntimeData__(self, RunIDs: Union[int, List[Any], str]) -> bool:
         """Check if the provided RunIDs are in the RuntimeData.
 
         Args:
-            RunIDs (Union[int, List[Any]]): RunIDs to check.
+            RunIDs (Union[int, List[Any], str]): RunIDs to check.
 
         Returns:
             bool: True if the RunIDs are in the RuntimeData. False otherwise.
@@ -1111,9 +1126,9 @@ class MultiCoreExecutionTool:
         if self._DEBUG:
             print("Fetching Results...")
 
-        if self._RuntimeResults is None:
+        if self._RuntimeResults == {} or self._RuntimeResults is None:
             print('No results found. Use the "run()" method to get results.')
-            return None
+            return {}
 
         if self.__has_pending_results__():
             print('Pending results found. Use the "run()" method to get results.')
@@ -1127,7 +1142,7 @@ class MultiCoreExecutionTool:
 
         else:
             print('No results found. Use the "run()" method to get results.')
-            return None
+            return {}
 
     def get_archive(self) -> Dict[str, Dict[Any, Dict[str, Any]]]:
         """Returns RuntimeArchive.
@@ -1165,7 +1180,7 @@ class MultiCoreExecutionTool:
         """Move the RuntimeResults to the RuntimeArchive.
 
         Returns:
-            NoReturn: No Return.
+            bool: True if the operation was successful. False otherwise.
         """
         if self._DEBUG:
             print("Archiving Results...")
@@ -1176,7 +1191,7 @@ class MultiCoreExecutionTool:
             print(f"Error: {e}")
             return False
 
-    def next(self) -> bool:
+    def next(self) -> Union[bool, Dict[str, Dict[Any, Any]]]:
         if self._DEBUG:
             print("Moving to next task...")
 
